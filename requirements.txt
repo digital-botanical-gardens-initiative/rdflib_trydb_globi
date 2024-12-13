@@ -1,0 +1,5 @@
+argcomplete==3.1.4
+pandas==2.2.3
+owlready2==0.47
+rdflib==7.1.1
+sentence-transformers==3.3.1
