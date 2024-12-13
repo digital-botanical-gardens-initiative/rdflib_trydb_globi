@@ -1,14 +1,15 @@
+'''
+    File name: matchNamesToOntology.py
+    Author: Disha Tandon
+    Date created: 12/13/2024
+    Python Version: 3
+'''
+
+
 from owlready2 import get_ontology
 from sentence_transformers import SentenceTransformer, util
 import csv
 import argparse
-
-# Load multiple ontologies (UBERON, PO, FAO) from local files
-ontology_paths = {
-    'UBERON': 'path/to/uberon.owl',
-    'PO': 'path/to/po.owl',
-    'FAO': 'path/to/fao.owl'
-}
 
 # Function to load and parse multiple ontologies
 def load_ontologies(ontology_paths):
@@ -52,9 +53,6 @@ def find_best_match(input_term, ontology_terms, ontology_embeddings, model):
 
     return best_match_label, best_match_uri, best_match_score
 
-# Read input terms from a file
-input_file = "input_terms.txt"  # Path to input file with terms (one per line)
-output_file = "matched_terms.csv"  # Path to save the results
 
 # Function to process input terms and find the best match
 def process_terms(input_file, output_file, ontology_paths):
@@ -96,7 +94,7 @@ if __name__ == "__main__":
 
     #Parse the arguments
     args = parser.parse_args()
-    input_file = args.inputFile  # Your input file with terms
+    input_file = args.inputFile  # Input file with term
     output_file = args.outputFile  # Output file to save the results
     ontology_paths = {
             "UBERON" :  "http://purl.obolibrary.org/obo/uberon.owl",  # UBERON ontology path
