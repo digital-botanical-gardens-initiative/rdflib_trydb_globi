@@ -100,6 +100,8 @@ if __name__ == "__main__":
             "UBERON" :  "http://purl.obolibrary.org/obo/uberon.owl",  # UBERON ontology path
         "PO" :  "http://purl.obolibrary.org/obo/po.owl",  # PO ontology path
         "ENVO" :    "http://purl.obolibrary.org/obo/envo.owl",  # ENVO ontology path
+        "PATO" :    "http://purl.obolibrary.org/obo/pato.owl",  # PATO ontology path
+        "WBLS" :
         }
     process_terms(input_file, output_file, ontology_paths)
 
