@@ -9,12 +9,15 @@
 import pandas as pd
 import gzip
 import rdflib
+from rdflib import URIRef, Literal, Namespace, RDF, RDFS, XSD, DCTERMS, Graph, BNode
+
+rdflib.plugin.register('turtle_custom', rdflib.plugin.Serializer, 'turtle_custom.serializer', 'TurtleSerializerCustom')
 
 
 # Define a function for real-time filtering
 def filter_file_runtime(file_path, filter_df, key_column):
     # Read the file in chunks for runtime processing
-    cs = 1000  # Adjust chunk size as needed
+    cs = 10000  # Adjust chunk size as needed
     matching_rows = pd.DataFrame()  # To store filtered rows
     
     for chunk in pd.read_csv(file_path, compression="gzip", sep="\t", dtype=str, encoding="utf-8", chunksize=cs):
@@ -78,3 +81,19 @@ def format_uri(uri_part):
     :return: The formatted URI part with spaces replaced by underscores.
     '''
     return uri_part.replace(" ", "%20")
+
+import pandas as pd
+
+def create_dict_from_csv(csv_file, key_column, value_column):
+    """
+    Create a dictionary from two columns in a CSV file using pandas.
+    
+    :param csv_file: Path to the CSV file.
+    :param key_column: Column name to use as keys.
+    :param value_column: Column name to use as values.
+    :return: A dictionary where keys are from key_column and values are from value_column.
+    """
+    df = pd.read_csv(csv_file, sep=",", dtype=str, quoting=3)
+    return dict(zip(df[key_column], df[value_column]))
+
+
