@@ -12,13 +12,14 @@ from rdflib import URIRef, Literal, Namespace, RDF, RDFS, XSD, DCTERMS, Graph, B
 import gzip
 import argparse
 import sys
+import re
 
 sys.path.append('./functions')  # Add the 'src' directory to the sys.path
 import data_processing as dp
 
 rdflib.plugin.register('turtle_custom', rdflib.plugin.Serializer, 'turtle_custom.serializer', 'TurtleSerializerCustom')
 
-# Namespace declarations
+# First set : Namespace declarations universal
 emi = Namespace("https://purl.org/emi#")
 emiBox = Namespace("https://purl.org/emi/abox#")
 sosa = Namespace("http://www.w3.org/ns/sosa/")
@@ -28,22 +29,72 @@ prov = Namespace("http://www.w3.org/ns/prov#")
 wgs84 = Namespace("http://www.w3.org/2003/01/geo/wgs84_pos#")
 nTemp = Namespace("http://example.com/base-ns#")
 
+# Second set : Namespaces for body part (anatomical entity) and life stage (developmental) names
+aeo = Namespace("http://purl.obolibrary.org/obo/AEO_")
+chebi = Namespace("http://purl.obolibrary.org/obo/CHEBI_")
+clyh = Namespace("http://purl.obolibrary.org/obo/CLYH_")
+envo = Namespace("http://purl.obolibrary.org/obo/ENVO_")
+fao = Namespace("http://purl.obolibrary.org/obo/FAO_")
+fbdv = Namespace("http://purl.obolibrary.org/obo/FBdv_")
+hao = Namespace("http://purl.obolibrary.org/obo/HAO_")
+ncit = Namespace("http://purl.obolibrary.org/obo/NCIT_")
+omit = Namespace("http://purl.obolibrary.org/obo/OMIT_")
+pato = Namespace("http://purl.obolibrary.org/obo/PATO_")
+po = Namespace("http://purl.obolibrary.org/obo/PO_")
+poro = Namespace("http://purl.obolibrary.org/obo/PORO_")
+ro = Namespace("http://purl.obolibrary.org/obo/RO_")
+uberon = Namespace("http://purl.obolibrary.org/obo/UBERON_")
+
+
+# Mapping prefixes to namespaces only for the second set
+prefix_to_namespace = {
+    "AEO:" : aeo,
+    "CHEBI:" : chebi,
+    "CLYH:" : clyh,
+    "ENVO:" : envo,
+    "FAO:" : fao,
+    "FBdv:" : fbdv,
+    "HAO:" : hao,
+    "NCIT:" : ncit,
+    "OMIT:" : omit,
+    "PATO:" : pato,
+    "PORO:" : poro,
+    "RO:" : ro,
+    "UBERON:" : uberon,
+    "PO:" : po
+}
+
+# Function for checking na/none/empty strings
 def is_none_na_or_empty(value):
-    return not (value is None or value == '' or value == "\\N" or value == "no:match" or pd.isna(value))
+    return not (value is None or value == '' or value == "\\N" or value == "no:match" or pd.isna(value) or re.match(r"ĜLOBI:", value))
     
 
-def add_entity_to_graph(fileName,keyVal,colVal1,colVal2,entity,subject,predicate,ns):
+# Function for adding ambiguous entities to the graph
+def add_entity_to_graph(fileName,keyCol,valCol1,valCol2,entity,entityID,subject,predicate,ns, graph):
     eNamesDict = dp.create_dict_from_csv(fileName, keyCol, valCol1)
     eURIDict = dp.create_dict_from_csv(fileName, keyCol, valCol2)
-    if entity in eNamesDict:
+    if is_none_na_or_empty(entityID):
+        if any(entityID.startswith(prefix) for prefix in prefix_to_namespace): #handle prefixed identifiers like 'UBERON:'
+            for prefix, namespace in prefix_to_namespace.items():
+                if entityID.startswith(prefix):
+                    entity_Id = entityID[len(prefix):]
+                    entityURI = namespace[entity_Id]
+                    graph.add((subject,predicate,entityURI))
+                    graph.add((entityURI, RDFS.label, Literal(entity, datatype=XSD.string)))
+                    break
+        elif entityID.startswith("http"):
+            graph.add((subject,predicate,URIRef(entityID)))
+            graph.add((URIRef(entityID), RDFS.label, Literal(entity, datatype=XSD.string)))
+    elif entity in eNamesDict:
         modEntityURI = URIRef(eURIDict[entity])  # Use standardized URI
-        modEntityName = URIRef(eNamesDict[entity])  # Use standardized URI
-        graph.add(subject,predicate,modEntityURI)
+        modEntityName = eNamesDict[entity]  # Use standardized URI
+        graph.add((subject,predicate,modEntityURI))
         graph.add((modEntityURI, RDFS.label, Literal(modEntityName, datatype=XSD.string)))
     else:
-        graph.add((subject,predicate,emiBox[f"{ns-dp.format_uri(entity)}"]))
+        graph.add((subject,predicate,emiBox[f"{ns}-{dp.format_uri(entity)}"])) #fallback URI
    
 
+# Function to generate full set of triples
 def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, batch_size=1000, ch=2):
     """
     Generate RDF triples in compact Turtle format using batches of rows and rdflib for serialization.
@@ -173,22 +224,22 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
             
             # first read the file in which the mappings are stored, followed by triples generation
             # for body part names
-            if is_none_na_or_empty(row['sourceBodyPartName']) and is_none_na_or_empty(source_taxon_uri):
-                add_entity_to_graph("ontology/data/correctedBodyPartNamesGlobi.csv","InputTerm","BestMatch","URI",row['sourceBodyPartName'],source_taxon_uri,emi.hasAnatomicalEntity,"ANATOMICAL_ENTITY")
-            if is_none_na_or_empty(row['targetBodyPartName']) and is_none_na_or_empty(target_taxon_uri):
-                add_entity_to_graph("ontology/data/correctedBodyPartNamesGlobi.csv","InputTerm","BestMatch","URI",row['targetBodyPartName'],target_taxon_uri,emi.hasAnatomicalEntity,"ANATOMICAL_ENTITY")
+            if (is_none_na_or_empty(row['sourceBodyPartName']) or is_none_na_or_empty(row['sourceBodyPartId'])) and is_none_na_or_empty(source_taxon_uri):
+                add_entity_to_graph("../ontology/data/correctedBodyPartNamesGlobi.csv","InputTerm","BestMatch","URI",row['sourceBodyPartName'],row['sourceBodyPartId'],source_taxon_uri,emi.hasAnatomicalEntity,"ANATOMICAL_ENTITY", graph)
+            if (is_none_na_or_empty(row['targetBodyPartName']) or is_none_na_or_empty(row['targetBodyPartId'])) and is_none_na_or_empty(target_taxon_uri):
+                add_entity_to_graph("../ontology/data/correctedBodyPartNamesGlobi.csv","InputTerm","BestMatch","URI",row['targetBodyPartName'],row['targetBodyPartId'],target_taxon_uri,emi.hasAnatomicalEntity,"ANATOMICAL_ENTITY", graph)
             
             # for life stage names
-            if is_none_na_or_empty(row['sourceLifeStageName']) and is_none_na_or_empty(source_taxon_uri):
-                add_entity_to_graph("ontology/data/correctedLifeStageNamesGlobi.csv","InputTerm","BestMatch","URI",row['sourceLifeStageName'],source_taxon_uri,emi.hasDevelopmentalStage, "DEVELOPMENTAL_ENTITY")
-            if is_none_na_or_empty(row['targetLifeStageName']) and is_none_na_or_empty(target_taxon_uri):
-                add_entity_to_graph("ontology/data/correctedLifeStageNamesGlobi.csv","InputTerm","BestMatch","URI",row['targetLifeStageName'],target_taxon_uri,emi.hasDevelopmentalStage, "DEVELOPMENTAL_ENTITY")
+            if (is_none_na_or_empty(row['sourceLifeStageName']) or is_none_na_or_empty(row['sourceLifeStageId'])) and is_none_na_or_empty(source_taxon_uri):
+                add_entity_to_graph("../ontology/data/correctedLifeStageNamesGlobi.csv","InputTerm","BestMatch","URI",row['sourceLifeStageName'],row['sourceLifeStageId'],source_taxon_uri,emi.hasDevelopmentalStage, "DEVELOPMENTAL_ENTITY", graph)
+            if (is_none_na_or_empty(row['targetLifeStageName']) or is_none_na_or_empty(row['targetLifeStageId'])) and is_none_na_or_empty(target_taxon_uri):
+                add_entity_to_graph("../ontology/data/correctedLifeStageNamesGlobi.csv","InputTerm","BestMatch","URI",row['targetLifeStageName'],row['targetLifeStageId'],target_taxon_uri,emi.hasDevelopmentalStage, "DEVELOPMENTAL_ENTITY", graph)
 
             #for physiological stage
-            if is_none_na_or_empty(row['sourcePhysiologicalStageName']) and is_none_na_or_empty(source_taxon_uri):
-                graph.add((source_taxon_uri, emi.hasPhysiologicalStage, Literal(row['sourcePhysiologicalStageName'], datatype=XSD.string)))
-            if is_none_na_or_empty(row['targetPhysiologicalStageName']) and is_none_na_or_empty(target_taxon_uri):
-                graph.add((target_taxon_uri, emi.hasPhysiologicalStage, Literal(row['targetPhysiologicalStageName'], datatype=XSD.string)))
+            if is_none_na_or_empty(row['sourcePhysiologicalStateName']) and is_none_na_or_empty(source_taxon_uri):
+                graph.add((source_taxon_uri, emi.hasPhysiologicalStage, Literal(row['sourcePhysiologicalStateName'], datatype=XSD.string)))
+            if is_none_na_or_empty(row['targetPhysiologicalStateName']) and is_none_na_or_empty(target_taxon_uri):
+                graph.add((target_taxon_uri, emi.hasPhysiologicalStage, Literal(row['targetPhysiologicalStateName'], datatype=XSD.string)))
 #            graph.add((source_taxon_uri, emi.hasSex, Literal(row['sourceSexName'], datatype=XSD.string)))
 
             #for biological sex
