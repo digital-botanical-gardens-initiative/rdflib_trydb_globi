@@ -25,12 +25,24 @@ sosa = Namespace("http://www.w3.org/ns/sosa/")
 dcterms = Namespace("http://purl.org/dc/terms/")
 wd = Namespace("http://www.wikidata.org/entity/")
 prov = Namespace("http://www.w3.org/ns/prov#")
+wgs84 = Namespace("http://www.w3.org/2003/01/geo/wgs84_pos#")
 nTemp = Namespace("http://example.com/base-ns#")
 
 def is_none_na_or_empty(value):
-    return not (value is None or value == '' or value == "\\N" or pd.isna(value))
+    return not (value is None or value == '' or value == "\\N" or value == "no:match" or pd.isna(value))
+    
 
-
+def add_entity_to_graph(fileName,keyVal,colVal1,colVal2,entity,subject,predicate,ns):
+    eNamesDict = dp.create_dict_from_csv(fileName, keyCol, valCol1)
+    eURIDict = dp.create_dict_from_csv(fileName, keyCol, valCol2)
+    if entity in eNamesDict:
+        modEntityURI = URIRef(eURIDict[entity])  # Use standardized URI
+        modEntityName = URIRef(eNamesDict[entity])  # Use standardized URI
+        graph.add(subject,predicate,modEntityURI)
+        graph.add((modEntityURI, RDFS.label, Literal(modEntityName, datatype=XSD.string)))
+    else:
+        graph.add((subject,predicate,emiBox[f"{ns-dp.format_uri(entity)}"]))
+   
 
 def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, batch_size=1000, ch=2):
     """
@@ -72,11 +84,11 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
         out_file.write("@prefix sosa: <http://www.w3.org/ns/sosa/> .\n")
         out_file.write("@prefix dcterms: <http://purl.org/dc/terms/> .\n")
         out_file.write("@prefix wd: <http://www.wikidata.org/entity/> .\n")
-#       out_file.write("@prefix p_: <http://example.com/base-ns#> .\n")
         out_file.write("@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n")
         out_file.write("@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n")
         out_file.write("@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n")
-        out_file.write("@prefix prov: <http://www.w3.org/ns/prov#> .\n\n")
+        out_file.write("@prefix prov: <http://www.w3.org/ns/prov#> .\n")
+        out_file.write("@prefix wgs84: <http://www.w3.org/2003/01/geo/wgs84_pos#> .\n\n")
 
     # Process in batches
     i=0
@@ -93,16 +105,22 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
         graph.bind("dcterms", dcterms)  # Bind the 'emi' prefix explicitly
         graph.bind("wd", wd)  # Bind the 'emi' prefix explicitly
         graph.bind("prov", prov)  # Bind the 'emi' prefix explicitly
+        graph.bind("wgs84", wgs84)  # Bind the 'emi' prefix explicitly
 #        graph.namespace_manager.bind("_", nTemp)
 
         # Process each row in the batch
         for _, row in batch_data.iterrows():
             # Define URIs (ensure spaces are replaced with underscores)
-            source_taxon_uri = emi[f"{row['sourceTaxonId']}"] if is_none_na_or_empty(row['sourceTaxonId']) else None
-            target_taxon_uri = emi[f"{row['targetTaxonId']}"] if is_none_na_or_empty(row['targetTaxonId']) else None
-            intxn_type_uri = emi[f"{row['interactionTypeName']}"] if is_none_na_or_empty(row['interactionTypeName']) else None
-            intxn_type_Id_uri = URIRef(f"http://purl.obolibrary.org/obo/{row['interactionTypeId']}") if is_none_na_or_empty(row['interactionTypeId']) else None #maybe add RO as namespace
+            source_taxon_uri = emiBox[f"SAMPLE-{row['sourceTaxonId']}-inRec{i}"] if is_none_na_or_empty(row['sourceTaxonId']) else None
+            target_taxon_uri = emiBox[f"SAMPLE-{row['targetTaxonId']}-inRec{i}"] if is_none_na_or_empty(row['targetTaxonId']) else None
+
+            intxn_type_uri = emiBox[f"{row['interactionTypeName']}"] if is_none_na_or_empty(row['interactionTypeName']) else None
+            intxn_type_Id_uri = URIRef(f"{row['interactionTypeId']}") if is_none_na_or_empty(row['interactionTypeId']) else None #maybe add RO as namespace
             intxnRec_uri = emiBox[f"inRec{i}"]
+
+
+            #Declare intxn record as emi:Interaction, this will never be NA/Non/empty
+            graph.add((intxnRec_uri, RDF.type, emi.Interaction))
 
 
             # Add triples to the graph for interaction Record
@@ -110,10 +128,14 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
                 graph.add((intxnRec_uri, emi.hasSource, source_taxon_uri))
             if is_none_na_or_empty(target_taxon_uri):
                 graph.add((intxnRec_uri, emi.hasTarget, target_taxon_uri))
+
             if is_none_na_or_empty(intxn_type_uri):
-                graph.add((intxnRec_uri, emi.hasInteractionType, intxn_type_uri))
+                graph.add((intxnRec_uri, emi.isClassifiedWith, intxn_type_uri))
+                graph.add((intxn_type_uri, RDF.type, emi.InteractionType))
             if is_none_na_or_empty(intxn_type_Id_uri):
-                graph.add((intxnRec_uri, emi.hasInteractionType, intxn_type_Id_uri))
+                graph.add((intxnRec_uri, emi.isClassifiedWith, intxn_type_Id_uri))
+                graph.add((intxn_type_Id_uri, RDF.type, emi.InteractionType))
+
             if is_none_na_or_empty(row['localityName']):
                 graph.add((intxnRec_uri, prov.atLocation, Literal(row['localityName'], datatype=XSD.string)))
             if is_none_na_or_empty(row['referenceDoi']):
@@ -121,29 +143,62 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
             if is_none_na_or_empty(row['sourceDOI']):
                 graph.add((intxnRec_uri, dcterms.bibliographicCitation, Literal(row['sourceDOI'], datatype=XSD.string)))
             if is_none_na_or_empty(row['decimalLatitude']):
-                graph.add((intxnRec_uri, URIRef("http://www.w3.org/2003/01/geo/wgs84_pos#lat"), Literal(row['decimalLatitude'], datatype=XSD.string)))
+                graph.add((intxnRec_uri, wgs84.lat, Literal(row['decimalLatitude'], datatype=XSD.string)))
             if is_none_na_or_empty(row['decimalLongitude']):
-                graph.add((intxnRec_uri, URIRef("http://www.w3.org/2003/01/geo/wgs84_pos#long"), Literal(row['decimalLongitude'], datatype=XSD.string)))
+                graph.add((intxnRec_uri, wgs84.long, Literal(row['decimalLongitude'], datatype=XSD.string)))
+    #            graph.add((intxnRec_uri, URIRef("http://www.w3.org/2003/01/geo/wgs84_pos#long"), Literal(row['decimalLongitude'], datatype=XSD.string)))
 
 
             #Add triples for source and targets
             if is_none_na_or_empty(row['sourceTaxonName']) and is_none_na_or_empty(source_taxon_uri):
-                if(row['sourceTaxonName'] == "\\N"):
-                    print(i)
-                    print(row)
-                graph.add((source_taxon_uri, sosa.isSampleOf, emiBox[f"{dp.format_uri(row['sourceTaxonName'])}"]))
+                sourceSample_uri = emiBox[f"ORGANISM-{dp.format_uri(row['sourceTaxonName'])}"]
+                #if(row['sourceTaxonName'] == "\\N"):
+                #    print(i)
+                #    print(row)
+                graph.add((source_taxon_uri, RDF.type, sosa.Sample))
+                graph.add((source_taxon_uri, sosa.isSampleOf, sourceSample_uri))
             if is_none_na_or_empty(row['source_WD']) and is_none_na_or_empty(source_taxon_uri):
                 graph.add((source_taxon_uri, emi.inTaxon, wd[f"{row['source_WD']}"]))
 
             if is_none_na_or_empty(row['targetTaxonName']) and is_none_na_or_empty(target_taxon_uri):
-                graph.add((target_taxon_uri, sosa.isSampleOf, emiBox[f"{dp.format_uri(row['targetTaxonName'])}"]))
+                targetSample_uri = emiBox[f"ORGANISM-{dp.format_uri(row['targetTaxonName'])}"]
+                graph.add((target_taxon_uri, RDF.type, sosa.Sample))
+                graph.add((target_taxon_uri, sosa.isSampleOf, targetSample_uri))
             if is_none_na_or_empty(row['target_WD']) and is_none_na_or_empty(target_taxon_uri):
                 graph.add((target_taxon_uri, emi.inTaxon, wd[f"{row['target_WD']}"]))
         
-            i = i + 1
-        dp.add_inverse_relationships(graph)
+
 
             # Write body part, physiological state, and other taxon attributes (if available)
+            
+            # first read the file in which the mappings are stored, followed by triples generation
+            # for body part names
+            if is_none_na_or_empty(row['sourceBodyPartName']) and is_none_na_or_empty(source_taxon_uri):
+                add_entity_to_graph("ontology/data/correctedBodyPartNamesGlobi.csv","InputTerm","BestMatch","URI",row['sourceBodyPartName'],source_taxon_uri,emi.hasAnatomicalEntity,"ANATOMICAL_ENTITY")
+            if is_none_na_or_empty(row['targetBodyPartName']) and is_none_na_or_empty(target_taxon_uri):
+                add_entity_to_graph("ontology/data/correctedBodyPartNamesGlobi.csv","InputTerm","BestMatch","URI",row['targetBodyPartName'],target_taxon_uri,emi.hasAnatomicalEntity,"ANATOMICAL_ENTITY")
+            
+            # for life stage names
+            if is_none_na_or_empty(row['sourceLifeStageName']) and is_none_na_or_empty(source_taxon_uri):
+                add_entity_to_graph("ontology/data/correctedLifeStageNamesGlobi.csv","InputTerm","BestMatch","URI",row['sourceLifeStageName'],source_taxon_uri,emi.hasDevelopmentalStage, "DEVELOPMENTAL_ENTITY")
+            if is_none_na_or_empty(row['targetLifeStageName']) and is_none_na_or_empty(target_taxon_uri):
+                add_entity_to_graph("ontology/data/correctedLifeStageNamesGlobi.csv","InputTerm","BestMatch","URI",row['targetLifeStageName'],target_taxon_uri,emi.hasDevelopmentalStage, "DEVELOPMENTAL_ENTITY")
+
+            #for physiological stage
+            if is_none_na_or_empty(row['sourcePhysiologicalStageName']) and is_none_na_or_empty(source_taxon_uri):
+                graph.add((source_taxon_uri, emi.hasPhysiologicalStage, Literal(row['sourcePhysiologicalStageName'], datatype=XSD.string)))
+            if is_none_na_or_empty(row['targetPhysiologicalStageName']) and is_none_na_or_empty(target_taxon_uri):
+                graph.add((target_taxon_uri, emi.hasPhysiologicalStage, Literal(row['targetPhysiologicalStageName'], datatype=XSD.string)))
+#            graph.add((source_taxon_uri, emi.hasSex, Literal(row['sourceSexName'], datatype=XSD.string)))
+
+            #for biological sex
+            if is_none_na_or_empty(row['sourceSexName']) and is_none_na_or_empty(source_taxon_uri):
+                graph.add((source_taxon_uri, emi.hasSex, Literal(row['sourceSexName'], datatype=XSD.string)))
+            if is_none_na_or_empty(row['targetSexName']) and is_none_na_or_empty(target_taxon_uri):
+                graph.add((target_taxon_uri, emi.hasSex, Literal(row['targetSexName'], datatype=XSD.string)))
+
+
+
 #            graph.add((source_taxon_uri, emi.hasAnatomicalEntity, URIRef(f"{bpName[row['sourceBodyPartName']]}")))
 #            graph.add((source_taxon_uri, emi.hasDevelopmentalStage, URIRef(f"{lsName[row['sourceLifeStageName']]}")))
 #            graph.add((source_taxon_uri, emi.hasPhysiologicalStage, Literal(row['sourcePhysiologicalStageName'], datatype=XSD.string)))
@@ -152,6 +207,9 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
 #            graph.add((URIRef(f"{lsName[row['sourceLifeStageName']]}"), RDFS.comment, Literal(row['sourceLifeStageName'],datatype=XSD.string)))
 
 
+            i = i + 1
+        dp.add_inverse_relationships(graph)
+        
         # Serialize the graph for the batch and write to the file
         with gzip.open(output_file, "at", encoding="utf-8") as out_file:  # Append mode
             out_file.write(graph.serialize(format="turtle_custom"))
