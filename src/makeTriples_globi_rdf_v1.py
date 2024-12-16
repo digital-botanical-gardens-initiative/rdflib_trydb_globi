@@ -7,9 +7,9 @@
 
 
 import pandas as pd
+import rdflib
 from rdflib import URIRef, Literal, Namespace, RDF, RDFS, XSD, DCTERMS, Graph, BNode
 import gzip
-import rdflib
 import argparse
 import sys
 
@@ -24,13 +24,15 @@ emiBox = Namespace("https://purl.org/emi/abox#")
 sosa = Namespace("http://www.w3.org/ns/sosa/")
 dcterms = Namespace("http://purl.org/dc/terms/")
 wd = Namespace("http://www.wikidata.org/entity/")
+prov = Namespace("http://www.w3.org/ns/prov#")
 nTemp = Namespace("http://example.com/base-ns#")
 
 def is_none_na_or_empty(value):
-    return value is None or value == '' or pd.isna(value)
+    return not (value is None or value == '' or value == "\\N" or pd.isna(value))
 
 
-def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, batch_size=1000):
+
+def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, batch_size=1000, ch=2):
     """
     Generate RDF triples in compact Turtle format using batches of rows and rdflib for serialization.
 
@@ -41,9 +43,14 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
     :param batch_size: The number of rows to process per batch.
     """
     # Load input data
-
+    print("sent the arguments")
     data2 = pd.read_csv(join_csv, sep="\t", dtype=str)
-    merged_data = dp.filter_file_runtime(input_csv_gz, data2, key_column='wd_taxon_id')
+    if(ch == 1):
+        merged_data = dp.filter_file_runtime(input_csv_gz, data2, key_column='wd_taxon_id')
+    else:
+        merged_data = pd.read_csv(input_csv_gz, compression="gzip", sep="\t", dtype=str, encoding="utf-8")
+    print("merged file with following dimensions")
+    print(merged_data.shape)
 
     #data1 = pd.read_csv(input_csv_gz, compression="gzip", sep="\t", dtype=str, encoding="utf-8", quoting=3)
     
@@ -52,8 +59,8 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
     #merged_data = data1[(data1['source_WD'].isin(valid_taxons)) | 
     #    (data1['target_WD'].isin(valid_taxons))
     #]
-    print(merged_data)
-    merged_data.to_csv('intxns_subset_20241212_with_enpkg_wdIds.tsv.gz', sep='\t', compression='gzip', index=False)
+   #print(merged_data)
+   #merged_data.to_csv('intxns_subset_20241212_with_enpkg_wdIds.tsv.gz', sep='\t', compression='gzip', index=False)
 
 
     
@@ -68,10 +75,11 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
 #       out_file.write("@prefix p_: <http://example.com/base-ns#> .\n")
         out_file.write("@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n")
         out_file.write("@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n")
-        out_file.write("@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\n")
-#
-#
-#    # Process in batches
+        out_file.write("@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n")
+        out_file.write("@prefix prov: <http://www.w3.org/ns/prov#> .\n\n")
+
+    # Process in batches
+    i=0
     for start_row in range(0, len(merged_data), batch_size):
         end_row = min(start_row + batch_size, len(merged_data))
         batch_data = merged_data[start_row:end_row]
@@ -84,42 +92,55 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
         graph.bind("sosa", sosa)  # Bind the 'emi' prefix explicitly
         graph.bind("dcterms", dcterms)  # Bind the 'emi' prefix explicitly
         graph.bind("wd", wd)  # Bind the 'emi' prefix explicitly
-#        graph.bind("prov", prov)  # Bind the 'emi' prefix explicitly
+        graph.bind("prov", prov)  # Bind the 'emi' prefix explicitly
 #        graph.namespace_manager.bind("_", nTemp)
-        i=start_row
+
         # Process each row in the batch
         for _, row in batch_data.iterrows():
             # Define URIs (ensure spaces are replaced with underscores)
             source_taxon_uri = emi[f"{row['sourceTaxonId']}"] if is_none_na_or_empty(row['sourceTaxonId']) else None
             target_taxon_uri = emi[f"{row['targetTaxonId']}"] if is_none_na_or_empty(row['targetTaxonId']) else None
-            intxn_type_uri = emi[f"{row['interactionTypeName']}")] if is_none_na_or_empty(row['interactionTypeName']) else None
+            intxn_type_uri = emi[f"{row['interactionTypeName']}"] if is_none_na_or_empty(row['interactionTypeName']) else None
             intxn_type_Id_uri = URIRef(f"http://purl.obolibrary.org/obo/{row['interactionTypeId']}") if is_none_na_or_empty(row['interactionTypeId']) else None #maybe add RO as namespace
             intxnRec_uri = emiBox[f"inRec{i}"]
-#            sample_uri = emiBox[f"SAMPLE-{format_uri(row['AccSpeciesName'])}-{row['ObservationID']}"]
-#            organism_uri = emiBox[f"ORGANISM-{format_uri(row['AccSpeciesName'])}"]
 
 
-# ADD checks for NA           # Add triples to the graph for interaction Record
-            graph.add((intxnRec_uri, emi.hasSource, source_taxon_uri)) if is_none_na_or_empty(source_taxon_uri)
-            graph.add((intxnRec_uri, emi.hasTarget, target_taxon_uri)) if is_none_na_or_empty(target_taxon_uri)
-            graph.add((intxnRec_uri, emi.hasInteractionType, intxn_type_uri)) if is_none_na_or_empty(intxn_type_uri)
-            graph.add((intxnRec_uri, emi.hasInteractionType, intxn_type_Id_uri)) if is_none_na_or_empty(intxn_type_Id_uri)
-            graph.add((intxnRec_uri, prov.atLocation, Literal(row['localityName'], datatype=XSD.string))) if is_none_na_or_empty(row['localityName'])
-            graph.add((intxnRec_uri, dcterms.bibliographicCitation, Literal(row['referenceDoi'], datatype=XSD.string))) if is_none_na_or_empty(row['referenceDoi'])
-            graph.add((intxnRec_uri, dcterms.bibliographicCitation, Literal(row['sourceDoi'], datatype=XSD.string))) if is_none_na_or_empty(row['sourceDoi'])
-            graph.add((intxnRec_uri, URIRef("http://www.w3.org/2003/01/geo/wgs84_pos#lat"), Literal(row['decimalLatitude'], datatype=XSD.string))) if is_none_na_or_empty(row['decimalLatitude'])
-            graph.add((intxnRec_uri, URIRef("http://www.w3.org/2003/01/geo/wgs84_pos#long"), Literal(row['decimalLongitude'], datatype=XSD.string))) if is_none_na_or_empty(row['decimalLongitude'])
+            # Add triples to the graph for interaction Record
+            if is_none_na_or_empty(source_taxon_uri):
+                graph.add((intxnRec_uri, emi.hasSource, source_taxon_uri))
+            if is_none_na_or_empty(target_taxon_uri):
+                graph.add((intxnRec_uri, emi.hasTarget, target_taxon_uri))
+            if is_none_na_or_empty(intxn_type_uri):
+                graph.add((intxnRec_uri, emi.hasInteractionType, intxn_type_uri))
+            if is_none_na_or_empty(intxn_type_Id_uri):
+                graph.add((intxnRec_uri, emi.hasInteractionType, intxn_type_Id_uri))
+            if is_none_na_or_empty(row['localityName']):
+                graph.add((intxnRec_uri, prov.atLocation, Literal(row['localityName'], datatype=XSD.string)))
+            if is_none_na_or_empty(row['referenceDoi']):
+                graph.add((intxnRec_uri, dcterms.bibliographicCitation, Literal(row['referenceDoi'], datatype=XSD.string)))
+            if is_none_na_or_empty(row['sourceDOI']):
+                graph.add((intxnRec_uri, dcterms.bibliographicCitation, Literal(row['sourceDOI'], datatype=XSD.string)))
+            if is_none_na_or_empty(row['decimalLatitude']):
+                graph.add((intxnRec_uri, URIRef("http://www.w3.org/2003/01/geo/wgs84_pos#lat"), Literal(row['decimalLatitude'], datatype=XSD.string)))
+            if is_none_na_or_empty(row['decimalLongitude']):
+                graph.add((intxnRec_uri, URIRef("http://www.w3.org/2003/01/geo/wgs84_pos#long"), Literal(row['decimalLongitude'], datatype=XSD.string)))
 
 
             #Add triples for source and targets
-            graph.add((source_taxon_uri, sosa.isSampleOf, emiBox[f"{row['sourceTaxonName']}"])) if is_none_na_or_empty(row['sourceTaxonName'])
-            graph.add((source_taxon_uri, emi.inTaxon, wd[f"{row['source_WD']}"])) if is_none_na_or_empty(row['source_WD'])
+            if is_none_na_or_empty(row['sourceTaxonName']) and is_none_na_or_empty(source_taxon_uri):
+                if(row['sourceTaxonName'] == "\\N"):
+                    print(i)
+                    print(row)
+                graph.add((source_taxon_uri, sosa.isSampleOf, emiBox[f"{dp.format_uri(row['sourceTaxonName'])}"]))
+            if is_none_na_or_empty(row['source_WD']) and is_none_na_or_empty(source_taxon_uri):
+                graph.add((source_taxon_uri, emi.inTaxon, wd[f"{row['source_WD']}"]))
 
-            
-            graph.add((target_taxon_uri, sosa.isSampleOf, emiBox[f"{row['targetTaxonName']}"])) if is_none_na_or_empty(row['targetTaxonName'])
-            graph.add((target_taxon_uri, emi.inTaxon, wd[f"{row['target_WD']}"])) if is_none_na_or_empty(row['target_WD'])
+            if is_none_na_or_empty(row['targetTaxonName']) and is_none_na_or_empty(target_taxon_uri):
+                graph.add((target_taxon_uri, sosa.isSampleOf, emiBox[f"{dp.format_uri(row['targetTaxonName'])}"]))
+            if is_none_na_or_empty(row['target_WD']) and is_none_na_or_empty(target_taxon_uri):
+                graph.add((target_taxon_uri, emi.inTaxon, wd[f"{row['target_WD']}"]))
         
-        i = i + 1
+            i = i + 1
         dp.add_inverse_relationships(graph)
 
             # Write body part, physiological state, and other taxon attributes (if available)
@@ -156,4 +177,4 @@ if __name__ == "__main__":
     csv_file1 = args.inputFile
     csv_file2 = args.joinFile
     output_file = args.outputFile
-    generate_rdf_in_batches(csv_file1, csv_file2, output_file, join_column="TRY_AccSpeciesName", batch_size=10000)
+    generate_rdf_in_batches(csv_file1, csv_file2, output_file, join_column="wd_taxon_id", batch_size=10000)
