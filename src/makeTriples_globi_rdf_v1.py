@@ -110,9 +110,10 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
     :param batch_size: The number of rows to process per batch.
     """
     # Load input data
-    print("sent the arguments")
-    data2 = pd.read_csv(join_csv, sep="\t", dtype=str)
+    print("Sent the arguments. Process started")
+
     if(ch == 1):
+        data2 = pd.read_csv(join_csv, sep="\t", dtype=str)
         merged_data = dp.filter_file_runtime(input_csv_gz, data2, key_column='wd_taxon_id')
     else:
         merged_data = pd.read_csv(input_csv_gz, compression="gzip", sep="\t", dtype=str, encoding="utf-8")

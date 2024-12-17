@@ -109,6 +109,7 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
             graph.add((result_bnode, RDFS.label, Literal(row['DataName'], datatype=XSD.string)))
             graph.add((result_bnode, dcterms.identifier, Literal(row['DataID'], datatype=XSD.string)))
             graph.add((result_bnode, RDF.value, Literal(row['OrigValueStr'], datatype=XSD.string)))
+            ## TO ADD UNITS SOON
 
             if pd.notna(row['WdID']):
                 graph.add((organism_uri, emi.inTaxon, URIRef(wd[dp.format_uri(row['WdID'])])))
