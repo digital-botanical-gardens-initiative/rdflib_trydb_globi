@@ -21,11 +21,13 @@ rdflib.plugin.register('turtle_custom', rdflib.plugin.Serializer, 'turtle_custom
 
 # Namespace declarations
 emi = Namespace("https://purl.org/emi#")
+emiUnit = Namespace("https://purl.org/emi/unit#")
 emiBox = Namespace("https://purl.org/emi/abox#")
 sosa = Namespace("http://www.w3.org/ns/sosa/")
 dcterms = Namespace("http://purl.org/dc/terms/")
 wd = Namespace("http://www.wikidata.org/entity/")
 nTemp = Namespace("http://example.com/base-ns#")
+qudt = Namespace("https://qudt.org/2.1/schema/qudt#")
 
 
 
@@ -42,6 +44,10 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
     # Load input data
     data1 = pd.read_csv(input_csv_gz, compression="gzip", sep="\t", dtype=str)
     data2 = pd.read_csv(join_csv, sep="\t", dtype=str)
+    
+    # read units dict file
+    dictFileName = "../ontology/data/trydb/qudtMappingToTryDb.txt"
+    eNamesDict = dp.create_dict_from_csv(dictFileName, "origUnit", "qudtUnit")
 
     # Perform the join
     merged_data = pd.merge(data1, data2[[join_column, "WdID"]],
@@ -57,6 +63,7 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
     with gzip.open(output_file, "wt", encoding="utf-8") as out_file:
         # Write prefixes directly to the file
         out_file.write("@prefix emi: <https://purl.org/emi#> .\n")
+        out_file.write("@prefix emiUnit: <https://purl.org/emi/unit#> .\n")
         out_file.write("@prefix : <https://purl.org/emi/abox#> .\n")
         out_file.write("@prefix sosa: <http://www.w3.org/ns/sosa/> .\n")
         out_file.write("@prefix dcterms: <http://purl.org/dc/terms/> .\n")
@@ -64,7 +71,8 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
 #       out_file.write("@prefix p_: <http://example.com/base-ns#> .\n")
         out_file.write("@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .\n")
         out_file.write("@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n")
-        out_file.write("@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n\n")
+        out_file.write("@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n")
+        out_file.write("@prefix qudt: <https://qudt.org/2.1/schema/qudt#> .\n\n")
 
 
     # Process in batches
@@ -77,10 +85,12 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
         graph = Graph()
         graph.bind("", emiBox)  # ":" will now map to "https://purl.org/emi/abox#"
         graph.bind("emi", emi)  # Bind the 'emi' prefix explicitly
+        graph.bind("emiUnit", emiUnit)  # Bind the 'emi' prefix explicitly
         graph.bind("sosa", sosa)  # Bind the 'emi' prefix explicitly
         graph.bind("dcterms", dcterms)  # Bind the 'emi' prefix explicitly
         graph.bind("wd", wd)  # Bind the 'emi' prefix explicitly
-        graph.namespace_manager.bind("_", nTemp)
+        graph.bind("qudt", qudt)  # Bind the 'emi' prefix explicitly
+        #graph.namespace_manager.bind("_", nTemp)
 
         # Process each row in the batch
         for _, row in batch_data.iterrows():
@@ -88,10 +98,10 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
             # Define URIs
             # Define URIs (ensure spaces are replaced with underscores)
             sample_uri = emiBox[f"SAMPLE-{dp.format_uri(row['AccSpeciesName'])}-{row['ObservationID']}"]
-            dataset_uri = emiBox[f"DATASET-{dp.format_uri(row['Dataset'])}"]
+            dataset_uri = emiBox[f"DATASET-{dp.format_uri(row['Dataset'])}"] if dp.is_none_na_or_empty(row['Dataset']) else None
             observation_uri = emiBox[f"OBSERVATION-{dp.format_uri(row['ObservationID'])}"]
             organism_uri = emiBox[f"ORGANISM-{dp.format_uri(row['AccSpeciesName'])}"]
-            result_bnode = emiBox[f"RESULT-{row['ObsDataID']}"]
+            result_bnode = emiBox[f"RESULT-{row['ObsDataID']}"] if dp.is_none_na_or_empty(row['Dataset']) else None
             #result_bnode = BNode("RESULT-" + row['ObsDataID'])
 
 
@@ -99,17 +109,37 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
             graph.add((sample_uri, RDF.type, sosa.Sample))
             graph.add((sample_uri, sosa.isSampleOf, organism_uri))
             graph.add((sample_uri, sosa.isFeatureOfInterestOf, observation_uri))
-            graph.add((sample_uri, dcterms.isPartOf, dataset_uri))
+
+            if dp.is_none_na_or_empty(dataset_uri):
+                graph.add((sample_uri, dcterms.isPartOf, dataset_uri))
 
             graph.add((dataset_uri, dcterms.bibliographicCitation, Literal(row['Reference'], datatype=XSD.string)))
 
             graph.add((observation_uri, sosa.hasResult, result_bnode))
             
-            graph.add((result_bnode, RDF.type, emi[row['DataType']]))
-            graph.add((result_bnode, RDFS.label, Literal(row['DataName'], datatype=XSD.string)))
-            graph.add((result_bnode, dcterms.identifier, Literal(row['DataID'], datatype=XSD.string)))
-            graph.add((result_bnode, RDF.value, Literal(row['OrigValueStr'], datatype=XSD.string)))
-            ## TO ADD UNITS SOON
+            if dp.is_none_na_or_empty(result_bnode):
+	            if dp.is_none_na_or_empty(row['DataType']):
+	                if (row['DataType'] == "Trait"):
+	                    graph.add((result_bnode, RDF.type, emi.Trait))
+	                elif (row['DataType'] == "Non-trait"):
+	                    graph.add((result_bnode, RDF.type, emi.NonTrait))
+	            
+	            if dp.is_none_na_or_empty(row['DataName']):
+	                graph.add((result_bnode, RDFS.label, Literal(row['DataName'], datatype=XSD.string)))
+	            if dp.is_none_na_or_empty(row['DataID']):
+	                graph.add((result_bnode, dcterms.identifier, Literal(row['DataID'], datatype=XSD.string)))
+	            if dp.is_none_na_or_empty(row['OrigValueStr']):
+	                graph.add((result_bnode, RDF.value, Literal(row['OrigValueStr'], datatype=XSD.string)))
+	
+	            #Add units
+	            if dp.is_none_na_or_empty(row['OrigUnitStr']):
+	                entity = row['OrigUnitStr']
+	                if entity in eNamesDict:
+	                    graph.add((result_bnode, qudt.hasUnit, URIRef(qudt[eNamesDict[entity]])))
+	                    graph.add((result_bnode, qudt.hasUnit, URIRef(emiUnit[dp.format_uri(entity)])))
+	                else:
+	                    graph.add((result_bnode, qudt.hasUnit, URIRef(emiUnit[dp.format_uri(entity)])))
+
 
             if pd.notna(row['WdID']):
                 graph.add((organism_uri, emi.inTaxon, URIRef(wd[dp.format_uri(row['WdID'])])))
