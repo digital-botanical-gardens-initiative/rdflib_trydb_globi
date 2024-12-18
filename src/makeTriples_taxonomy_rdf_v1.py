@@ -10,7 +10,9 @@ import pandas as pd
 from rdflib import URIRef, Literal, Namespace, RDF, RDFS, XSD, DCTERMS, Graph, BNode
 import gzip
 import rdflib
+import argparse
 import sys
+
 
 sys.path.append('./functions')  # Add the 'src' directory to the sys.path
 import data_processing as dp
@@ -85,68 +87,74 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
         for _, row in batch_data.iterrows():
 #            graph.namespace_manager.bind("_", nTemp)
             # Define URIs (ensure spaces are replaced with underscores)
-            taxonomy_uri = otol[f"?id={row['ott']}" if pd.notna(row['ott']) else None]
-            wikidata_uri = wd[f"{row['WdID']}" if pd.notna(row['WdID']) else None]
-
-
-
-
+            taxonomy_uri = otol[f"?id={row['ott']}"] if dp.is_none_na_or_empty(row['ott']) else None
+            wikidata_uri = wd[f"{row['WdID']}"] if dp.is_none_na_or_empty(row['WdID']) else None
 
             # Add triples to the graph
-            if pd.notna(row['ncbi.wd']):
+            if dp.is_none_na_or_empty(row['ncbi.wd']):
+                if dp.is_none_na_or_empty(wikidata_uri):
+                    graph.add((wikidata_uri, skos.exactMatch, URIRef(f"http://purl.uniprot.org/taxonomy/{row['ncbi.wd']}")))
                 graph.add((taxonomy_uri, skos.exactMatch, URIRef(f"http://purl.uniprot.org/taxonomy/{row['ncbi.wd']}")))
                 graph.add((URIRef(f"http://purl.uniprot.org/taxonomy/{row['ncbi.wd']}"), dcterms.identifier, Literal(row['ncbi.wd'], datatype=XSD.string)))
                 graph.add((URIRef(f"http://purl.uniprot.org/taxonomy/{row['ncbi.wd']}"), skos.inScheme, URIRef("http://purl.obolibrary.org/obo/ncbitaxon.owl")))
 
-            if pd.notna(row['gbif.ott']):
+            if dp.is_none_na_or_empty(row['gbif.ott']):
+                if dp.is_none_na_or_empty(wikidata_uri):
+                    graph.add((wikidata_uri, skos.exactMatch, URIRef(f"https://www.gbif.org/species/{row['gbif.ott']}")))
                 graph.add((taxonomy_uri, skos.exactMatch, URIRef(f"https://www.gbif.org/species/{row['gbif.ott']}")))
                 graph.add((URIRef(f"https://www.gbif.org/species/{row['gbif.ott']}"), dcterms.identifier, Literal(row['gbif.ott'], datatype=XSD.int)))
                 graph.add((URIRef(f"https://www.gbif.org/species/{row['gbif.ott']}"), skos.inScheme, URIRef("https://www.gbif.org/species")))
 
-            if pd.notna(row['eol']):
+            if dp.is_none_na_or_empty(row['eol']):
+                if dp.is_none_na_or_empty(wikidata_uri):
+                    graph.add((wikidata_uri, skos.exactMatch, URIRef(f"https://www.eol.org/pages/{row['eol']}")))
                 graph.add((taxonomy_uri, skos.exactMatch, URIRef(f"https://www.eol.org/pages/{row['eol']}")))
                 graph.add((URIRef(f"https://www.eol.org/pages/{row['eol']}"), dcterms.identifier, Literal(row['eol'], datatype=XSD.int)))
                 graph.add((URIRef(f"https://www.eol.org/pages/{row['eol']}"), skos.inScheme, URIRef("https://www.eol.org")))
 
-            if pd.notna(row['itis']):
+            if dp.is_none_na_or_empty(row['itis']):
+                if dp.is_none_na_or_empty(wikidata_uri):
+                    graph.add((wikidata_uri, skos.exactMatch, URIRef(f"https://itis.gov/servlet/SingleRpt/SingleRpt?search_topic=TSN&search_value={row['itis']}")))
                 graph.add((taxonomy_uri, skos.exactMatch, URIRef(f"https://itis.gov/servlet/SingleRpt/SingleRpt?search_topic=TSN&search_value={row['itis']}")))
                 graph.add((URIRef(f"https://itis.gov/servlet/SingleRpt/SingleRpt?search_topic=TSN&search_value={row['itis']}"), dcterms.identifier, Literal(row['itis'], datatype=XSD.string)))
                 graph.add((URIRef(f"https://itis.gov/servlet/SingleRpt/SingleRpt?search_topic=TSN&search_value={row['itis']}"), skos.inScheme, URIRef("https://itis.gov")))
 
-
-
-            if pd.notna(row['irmng.wd']):
+            if dp.is_none_na_or_empty(row['irmng.wd']):
+                if dp.is_none_na_or_empty(wikidata_uri):
+                    graph.add((wikidata_uri, skos.exactMatch, URIRef(f"https://www.irmng.org/aphia.php?p=taxdetails&id={row['irmng.wd']}")))
                 graph.add((taxonomy_uri, skos.exactMatch, URIRef(f"https://www.irmng.org/aphia.php?p=taxdetails&id={row['irmng.wd']}")))
                 graph.add((URIRef(f"https://www.irmng.org/aphia.php?p=taxdetails&id={row['irmng.wd']}"), dcterms.identifier, Literal(row['irmng.wd'], datatype=XSD.string)))
                 graph.add((URIRef(f"https://www.irmng.org/aphia.php?p=taxdetails&id={row['irmng.wd']}"), skos.inScheme, URIRef("https://www.irmng.org")))
 
-
-            if pd.notna(row['worms.wd']):
+            if dp.is_none_na_or_empty(row['worms.wd']):
+                if dp.is_none_na_or_empty(wikidata_uri):
+                    graph.add((wikidata_uri, skos.exactMatch, URIRef(f"https://www.marinespecies.org/aphia.php?p=taxdetails&id={row['worms.wd']}")))
                 graph.add((taxonomy_uri, skos.exactMatch, URIRef(f"https://www.marinespecies.org/aphia.php?p=taxdetails&id={row['worms.wd']}")))
                 graph.add((URIRef(f"https://www.marinespecies.org/aphia.php?p=taxdetails&id={row['worms.wd']}"), dcterms.identifier, Literal(row['worms.wd'], datatype=XSD.string)))
                 graph.add((URIRef(f"https://www.marinespecies.org/aphia.php?p=taxdetails&id={row['worms.wd']}"), skos.inScheme, URIRef("https://www.marinespecies.org")))
 
-
-            if pd.notna(row['col']):
+            if dp.is_none_na_or_empty(row['col']):
+                if dp.is_none_na_or_empty(wikidata_uri):
+                    graph.add((wikidata_uri, skos.exactMatch, URIRef(f"https://www.catalogueoflife.org/data/taxon/{row['col']}")))
                 graph.add((taxonomy_uri, skos.exactMatch, URIRef(f"https://www.catalogueoflife.org/data/taxon/{row['col']}")))
                 graph.add((URIRef(f"https://www.catalogueoflife.org/data/taxon/{row['col']}"), dcterms.identifier, Literal(row['col'], datatype=XSD.string)))
                 graph.add((URIRef(f"https://www.catalogueoflife.org/data/taxon/{row['col']}"), skos.inScheme, URIRef("https://www.catalogueoflife.org")))
 
-
-            if pd.notna(row['nbn']):
+            if dp.is_none_na_or_empty(row['nbn']):
+                if dp.is_none_na_or_empty(wikidata_uri):
+                    graph.add((wikidata_uri, skos.exactMatch, URIRef(f"https://species.nbnatlas.org/species/{row['nbn']}")))
                 graph.add((taxonomy_uri, skos.exactMatch, URIRef(f"https://species.nbnatlas.org/species/{row['nbn']}")))
                 graph.add((URIRef(f"https://species.nbnatlas.org/species/{row['nbn']}"), dcterms.identifier, Literal(row['nbn'], datatype=XSD.string)))
                 graph.add((URIRef(f"https://species.nbnatlas.org/species/{row['nbn']}"), skos.inScheme, URIRef("https://species.nbnatlas.org")))
 
-
-
-            if pd.notna(row['msw3']):
+            if dp.is_none_na_or_empty(row['msw3']):
+                if dp.is_none_na_or_empty(wikidata_uri):
+                    graph.add((wikidata_uri, skos.exactMatch, URIRef(f"https://departments.bucknell.edu/biology/resources/msw3/browse.asp?id={row['msw3']}")))
                 graph.add((taxonomy_uri, skos.exactMatch, URIRef(f"https://departments.bucknell.edu/biology/resources/msw3/browse.asp?id={row['msw3']}")))
                 graph.add((URIRef(f"https://departments.bucknell.edu/biology/resources/msw3/browse.asp?id={row['msw3']}"), dcterms.identifier, Literal(row['msw3'], datatype=XSD.string)))
                 graph.add((URIRef(f"https://departments.bucknell.edu/biology/resources/msw3/browse.asp?id={row['msw3']}"), skos.inScheme, URIRef("https://departments.bucknell.edu/biology/resources/msw3")))
 
-
-            if pd.notna(row['WdID']):
+            if dp.is_none_na_or_empty(row['WdID']):
                 graph.add((taxonomy_uri, skos.exactMatch, URIRef(wd[f"{row['WdID']}"])))
                 graph.add((URIRef(wd[f"{row['WdID']}"]), dcterms.identifier, Literal(row['WdID'], datatype=XSD.string)))
                 graph.add((URIRef(wd[f"{row['WdID']}"]), RDF.type, emi.Taxon))
