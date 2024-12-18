@@ -10,8 +10,15 @@ import pandas as pd
 import gzip
 import rdflib
 from rdflib import URIRef, Literal, Namespace, RDF, RDFS, XSD, DCTERMS, Graph, BNode
+from urllib.parse import quote
+import re
 
 rdflib.plugin.register('turtle_custom', rdflib.plugin.Serializer, 'turtle_custom.serializer', 'TurtleSerializerCustom')
+
+
+# Function for checking na/none/empty strings
+def is_none_na_or_empty(value):
+    return not (value is None or value == '' or value == "\\N" or value == "no:match" or pd.isna(value) or re.match(r"ĜLOBI:", value))
 
 
 # Define a function for real-time filtering
@@ -77,10 +84,11 @@ def format_uri(uri_part):
     '''
     Formats the URI part by replacing spaces with underscores.
 
-    :param uri_part: The string part of the URI that may contain spaces.
+    :param uri_part: The string part of the URI that may contain special chars.
     :return: The formatted URI part with spaces replaced by underscores.
     '''
-    return uri_part.replace(" ", "%20")
+    encoded_string = quote(uri_part, safe="")  # Encode all special characters
+    return encoded_string
 
 import pandas as pd
 
@@ -93,7 +101,7 @@ def create_dict_from_csv(csv_file, key_column, value_column):
     :param value_column: Column name to use as values.
     :return: A dictionary where keys are from key_column and values are from value_column.
     """
-    df = pd.read_csv(csv_file, sep=",", dtype=str, quoting=3)
+    df = pd.read_csv(csv_file, sep=",", dtype=str)
     return dict(zip(df[key_column], df[value_column]))
 
 
