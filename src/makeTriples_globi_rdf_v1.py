@@ -64,16 +64,13 @@ prefix_to_namespace = {
     "PO:" : po
 }
 
-# Function for checking na/none/empty strings
-def is_none_na_or_empty(value):
-    return not (value is None or value == '' or value == "\\N" or value == "no:match" or pd.isna(value) or re.match(r"ĜLOBI:", value))
     
 
 # Function for adding ambiguous entities to the graph
 def add_entity_to_graph(fileName,keyCol,valCol1,valCol2,entity,entityID,subject,predicate,rdftype,ns,graph):
     eNamesDict = dp.create_dict_from_csv(fileName, keyCol, valCol1)
     eURIDict = dp.create_dict_from_csv(fileName, keyCol, valCol2)
-    if is_none_na_or_empty(entityID):
+    if dp.is_none_na_or_empty(entityID):
         if any(entityID.startswith(prefix) for prefix in prefix_to_namespace): #handle prefixed identifiers like 'UBERON:'
             for prefix, namespace in prefix_to_namespace.items():
                 if entityID.startswith(prefix):
@@ -99,7 +96,7 @@ def add_entity_to_graph(fileName,keyCol,valCol1,valCol2,entity,entityID,subject,
    
 
 # Function to generate full set of triples
-def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, batch_size=1000, ch=2):
+def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, batch_size=1000, ch=1):
     """
     Generate RDF triples in compact Turtle format using batches of rows and rdflib for serialization.
 
@@ -114,7 +111,7 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
 
     if(ch == 1):
         data2 = pd.read_csv(join_csv, sep="\t", dtype=str)
-        merged_data = dp.filter_file_runtime(input_csv_gz, data2, key_column='wd_taxon_id')
+        merged_data = dp.filter_file_runtime(input_csv_gz, data2, key_column=join_column)
     else:
         merged_data = pd.read_csv(input_csv_gz, compression="gzip", sep="\t", dtype=str, encoding="utf-8")
     print("merged file with following dimensions")
@@ -167,11 +164,11 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
         # Process each row in the batch
         for _, row in batch_data.iterrows():
             # Define URIs (ensure spaces are replaced with underscores)
-            source_taxon_uri = emiBox[f"SAMPLE-{row['sourceTaxonId']}-inRec{i}"] if is_none_na_or_empty(row['sourceTaxonId']) else None
-            target_taxon_uri = emiBox[f"SAMPLE-{row['targetTaxonId']}-inRec{i}"] if is_none_na_or_empty(row['targetTaxonId']) else None
+            source_taxon_uri = emiBox[f"SAMPLE-{dp.format_uri(row['sourceTaxonId'])}-inRec{i}"] if dp.is_none_na_or_empty(row['sourceTaxonId']) else None
+            target_taxon_uri = emiBox[f"SAMPLE-{dp.format_uri(row['targetTaxonId'])}-inRec{i}"] if dp.is_none_na_or_empty(row['targetTaxonId']) else None
 
-            intxn_type_uri = emiBox[f"{row['interactionTypeName']}"] if is_none_na_or_empty(row['interactionTypeName']) else None
-            intxn_type_Id_uri = URIRef(f"{row['interactionTypeId']}") if is_none_na_or_empty(row['interactionTypeId']) else None #maybe add RO as namespace
+            intxn_type_uri = emiBox[f"{row['interactionTypeName']}"] if dp.is_none_na_or_empty(row['interactionTypeName']) else None
+            intxn_type_Id_uri = URIRef(f"{row['interactionTypeId']}") if dp.is_none_na_or_empty(row['interactionTypeId']) else None #maybe add RO as namespace
             intxnRec_uri = emiBox[f"inRec{i}"]
 
 
@@ -180,49 +177,49 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
 
 
             # Add triples to the graph for interaction Record
-            if is_none_na_or_empty(source_taxon_uri):
+            if dp.is_none_na_or_empty(source_taxon_uri):
                 graph.add((intxnRec_uri, emi.hasSource, source_taxon_uri))
-            if is_none_na_or_empty(target_taxon_uri):
+            if dp.is_none_na_or_empty(target_taxon_uri):
                 graph.add((intxnRec_uri, emi.hasTarget, target_taxon_uri))
 
-            if is_none_na_or_empty(intxn_type_uri):
+            if dp.is_none_na_or_empty(intxn_type_uri):
                 graph.add((intxnRec_uri, emi.isClassifiedWith, intxn_type_uri))
                 graph.add((intxn_type_uri, RDF.type, emi.InteractionType))
-            if is_none_na_or_empty(intxn_type_Id_uri):
+            if dp.is_none_na_or_empty(intxn_type_Id_uri):
                 graph.add((intxnRec_uri, emi.isClassifiedWith, intxn_type_Id_uri))
                 graph.add((intxn_type_Id_uri, RDF.type, emi.InteractionType))
-                if is_none_na_or_empty(intxn_type_uri):
+                if dp.is_none_na_or_empty(intxn_type_uri):
                     graph.add((intxn_type_uri, dcterms.identifier,intxn_type_Id_uri))
 
-            if is_none_na_or_empty(row['localityName']):
+            if dp.is_none_na_or_empty(row['localityName']):
                 graph.add((intxnRec_uri, prov.atLocation, Literal(row['localityName'], datatype=XSD.string)))
-            if is_none_na_or_empty(row['referenceDoi']):
+            if dp.is_none_na_or_empty(row['referenceDoi']):
                 graph.add((intxnRec_uri, dcterms.bibliographicCitation, Literal(row['referenceDoi'], datatype=XSD.string)))
-            if is_none_na_or_empty(row['sourceDOI']):
+            if dp.is_none_na_or_empty(row['sourceDOI']):
                 graph.add((intxnRec_uri, dcterms.bibliographicCitation, Literal(row['sourceDOI'], datatype=XSD.string)))
-            if is_none_na_or_empty(row['decimalLatitude']):
+            if dp.is_none_na_or_empty(row['decimalLatitude']):
                 graph.add((intxnRec_uri, wgs84.lat, Literal(row['decimalLatitude'], datatype=XSD.string)))
-            if is_none_na_or_empty(row['decimalLongitude']):
+            if dp.is_none_na_or_empty(row['decimalLongitude']):
                 graph.add((intxnRec_uri, wgs84.long, Literal(row['decimalLongitude'], datatype=XSD.string)))
     #            graph.add((intxnRec_uri, URIRef("http://www.w3.org/2003/01/geo/wgs84_pos#long"), Literal(row['decimalLongitude'], datatype=XSD.string)))
 
 
             #Add triples for source and targets
-            if is_none_na_or_empty(row['sourceTaxonName']) and is_none_na_or_empty(source_taxon_uri):
+            if dp.is_none_na_or_empty(row['sourceTaxonName']) and dp.is_none_na_or_empty(source_taxon_uri):
                 sourceSample_uri = emiBox[f"ORGANISM-{dp.format_uri(row['sourceTaxonName'])}"]
                 #if(row['sourceTaxonName'] == "\\N"):
                 #    print(i)
                 #    print(row)
                 graph.add((source_taxon_uri, RDF.type, sosa.Sample))
                 graph.add((source_taxon_uri, sosa.isSampleOf, sourceSample_uri))
-            if is_none_na_or_empty(row['source_WD']) and is_none_na_or_empty(source_taxon_uri):
+            if dp.is_none_na_or_empty(row['source_WD']) and dp.is_none_na_or_empty(source_taxon_uri):
                 graph.add((source_taxon_uri, emi.inTaxon, wd[f"{row['source_WD']}"]))
 
-            if is_none_na_or_empty(row['targetTaxonName']) and is_none_na_or_empty(target_taxon_uri):
+            if dp.is_none_na_or_empty(row['targetTaxonName']) and dp.is_none_na_or_empty(target_taxon_uri):
                 targetSample_uri = emiBox[f"ORGANISM-{dp.format_uri(row['targetTaxonName'])}"]
                 graph.add((target_taxon_uri, RDF.type, sosa.Sample))
                 graph.add((target_taxon_uri, sosa.isSampleOf, targetSample_uri))
-            if is_none_na_or_empty(row['target_WD']) and is_none_na_or_empty(target_taxon_uri):
+            if dp.is_none_na_or_empty(row['target_WD']) and dp.is_none_na_or_empty(target_taxon_uri):
                 graph.add((target_taxon_uri, emi.inTaxon, wd[f"{row['target_WD']}"]))
         
 
@@ -231,28 +228,28 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
             
             # first read the file in which the mappings are stored, followed by triples generation
             # for body part names
-            if (is_none_na_or_empty(row['sourceBodyPartName']) or is_none_na_or_empty(row['sourceBodyPartId'])) and is_none_na_or_empty(source_taxon_uri):
+            if (dp.is_none_na_or_empty(row['sourceBodyPartName']) or dp.is_none_na_or_empty(row['sourceBodyPartId'])) and dp.is_none_na_or_empty(source_taxon_uri):
                 add_entity_to_graph("../ontology/data/globi/correctedBodyPartNamesGlobi.csv","InputTerm","BestMatch","URI",row['sourceBodyPartName'],row['sourceBodyPartId'],source_taxon_uri,emi.hasAnatomicalEntity,emi.AnatomicalEntity, "ANATOMICAL_ENTITY", graph)
-            if (is_none_na_or_empty(row['targetBodyPartName']) or is_none_na_or_empty(row['targetBodyPartId'])) and is_none_na_or_empty(target_taxon_uri):
+            if (dp.is_none_na_or_empty(row['targetBodyPartName']) or dp.is_none_na_or_empty(row['targetBodyPartId'])) and dp.is_none_na_or_empty(target_taxon_uri):
                 add_entity_to_graph("../ontology/data/globi/correctedBodyPartNamesGlobi.csv","InputTerm","BestMatch","URI",row['targetBodyPartName'],row['targetBodyPartId'],target_taxon_uri,emi.hasAnatomicalEntity,emi.AnatomicalEntity, "ANATOMICAL_ENTITY", graph)
             
             # for life stage names
-            if (is_none_na_or_empty(row['sourceLifeStageName']) or is_none_na_or_empty(row['sourceLifeStageId'])) and is_none_na_or_empty(source_taxon_uri):
+            if (dp.is_none_na_or_empty(row['sourceLifeStageName']) or dp.is_none_na_or_empty(row['sourceLifeStageId'])) and dp.is_none_na_or_empty(source_taxon_uri):
                 add_entity_to_graph("../ontology/data/globi/correctedLifeStageNamesGlobi.csv","InputTerm","BestMatch","URI",row['sourceLifeStageName'],row['sourceLifeStageId'],source_taxon_uri,emi.hasDevelopmentalStage, emi.DevelopmentalStage, "DEVELOPMENTAL_STAGE", graph)
-            if (is_none_na_or_empty(row['targetLifeStageName']) or is_none_na_or_empty(row['targetLifeStageId'])) and is_none_na_or_empty(target_taxon_uri):
+            if (dp.is_none_na_or_empty(row['targetLifeStageName']) or dp.is_none_na_or_empty(row['targetLifeStageId'])) and dp.is_none_na_or_empty(target_taxon_uri):
                 add_entity_to_graph("../ontology/data/globi/correctedLifeStageNamesGlobi.csv","InputTerm","BestMatch","URI",row['targetLifeStageName'],row['targetLifeStageId'],target_taxon_uri,emi.hasDevelopmentalStage, emi.DevelopmentalStage, "DEVELOPMENTAL_STAGE", graph)
 
             #for physiological stage
-            if is_none_na_or_empty(row['sourcePhysiologicalStateName']) and is_none_na_or_empty(source_taxon_uri):
+            if dp.is_none_na_or_empty(row['sourcePhysiologicalStateName']) and dp.is_none_na_or_empty(source_taxon_uri):
                 graph.add((source_taxon_uri, emi.hasPhysiologicalStage, Literal(row['sourcePhysiologicalStateName'], datatype=XSD.string)))
-            if is_none_na_or_empty(row['targetPhysiologicalStateName']) and is_none_na_or_empty(target_taxon_uri):
+            if dp.is_none_na_or_empty(row['targetPhysiologicalStateName']) and dp.is_none_na_or_empty(target_taxon_uri):
                 graph.add((target_taxon_uri, emi.hasPhysiologicalStage, Literal(row['targetPhysiologicalStateName'], datatype=XSD.string)))
 #            graph.add((source_taxon_uri, emi.hasSex, Literal(row['sourceSexName'], datatype=XSD.string)))
 
             #for biological sex
-            if is_none_na_or_empty(row['sourceSexName']) and is_none_na_or_empty(source_taxon_uri):
+            if dp.is_none_na_or_empty(row['sourceSexName']) and dp.is_none_na_or_empty(source_taxon_uri):
                 graph.add((source_taxon_uri, emi.hasSex, Literal(row['sourceSexName'], datatype=XSD.string)))
-            if is_none_na_or_empty(row['targetSexName']) and is_none_na_or_empty(target_taxon_uri):
+            if dp.is_none_na_or_empty(row['targetSexName']) and dp.is_none_na_or_empty(target_taxon_uri):
                 graph.add((target_taxon_uri, emi.hasSex, Literal(row['targetSexName'], datatype=XSD.string)))
 
 
