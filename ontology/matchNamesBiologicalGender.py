@@ -1,32 +1,44 @@
 import pandas as pd
 import re
-from autocorrect import Speller
-
-spell = Speller(lang='en')  # Autocorrect for English; customize as needed
 
 
 # Preprocessing functions
 def preprocess_term(term):
     """Lowercase, autocorrect, and remove extra characters (plural)."""
     term = term.lower().strip()  # Convert to lowercase and remove extra spaces
-    #term = spell(term)  # Autocorrect misspelled words
     if "mono" not in term and "auto" not in term:
         if term.endswith('s'):
             term = term[:-1]  # Remove trailing 's' to handle plurals
     return term
 
-def map_terms_to_values(training_df, test_df):
-    mapping_dict = dict(zip(training_df['input'].str.lower(), training_df['output']))  # Lowercase all terms in training data
+# Functions for mapping biological gender
+def map_terms_to_values(test_df):
+    """Match the biological gender values."""
+    # File paths
+    dataFile = "/home/drishti/Documents/Projects/DBGI/gitReposMine/rdflib_trydb_globi/ontology/data/globi/correctedBiologicalSexNames.tsv"
+    # Load data
+    mapDf = pd.read_csv(dataFile, sep="\t", quoting=3, dtype=str)
+
+    # declare and fill dictionary
+    mapping_dict = dict(zip(mapDf['input'].str.lower(), mapDf['output']))
+
+    # conjunction patterns 
     conjunction_patterns1 = re.compile(r'\b(and|y)\b', re.IGNORECASE)
     conjunction_patterns2 = re.compile(r'\b(or)\b', re.IGNORECASE)
+
+    # pre_post fixes 
     pre_post_fix = re.compile(r"(adult[as]?|tortere|juvenil[e]?|maybe|\(?torete[s]?\)?)", re.IGNORECASE)
+
+    # delimiters to be considered
     delimiters_regex = re.compile(r"[,;/|&]+", re.IGNORECASE)                          # Removed '-'
     delimiters_regex1 = re.compile(r"[\[\]\(\)\?\#:`]+", re.IGNORECASE)                # Removed '-'
     delimiters_regex2 = re.compile(r"[+.,]+", re.IGNORECASE)
     delimiters_regex3 = re.compile(r"\s\s", re.IGNORECASE)
-    #pattern = r"(\d+)\s*(\w+)|(\w+)\s*(\d+)"
+
+    # patterns for matching strings like "12 male, 3 female"
     pattern = r"(\d+)\s*([\w-]+)|([\w-]+)\s*(\d+)"
-    #counts_template = {key: 0 for key in mapping_dict.keys()}
+
+    # create a template dictionary from the values of mapping_dict
     counts_template = {value: 0 for value in mapping_dict.values()}
 
     for term in test_df['input']:
@@ -92,24 +104,12 @@ def map_terms_to_values(training_df, test_df):
             termX = mapping_dict[term]
             countX = 1
             print(termX, "\t", countX)
-        
-
-#    return counts
 
 
+# For testing the code
+if __name__ == "__main__":
+    testFile = "/home/drishti/Documents/Projects/DBGI/gitReposMine/rdflib_trydb_globi/ontology/data/globi/temp/test.tsv"
+    test_data = pd.read_csv(testFile, sep="\t", dtype=str, quoting=3)
 
-# File paths
-dataFile = "/home/drishti/Documents/Projects/DBGI/gitReposMine/rdflib_trydb_globi/ontology/data/globi/correctedBiologicalSexNames.tsv"
-testFile = "/home/drishti/Documents/Projects/DBGI/gitReposMine/rdflib_trydb_globi/ontology/data/globi/temp/test.tsv"
-
-# Load training and test data
-training_data = pd.read_csv(dataFile, sep="\t", quoting=3, dtype=str)
-test_data = pd.read_csv(testFile, sep="\t", dtype=str, quoting=3)
-
-# Map the terms in test data to their respective values
-result = map_terms_to_values(training_data, test_data)
-
-# Output the result (you can save it to a CSV or print it)
-#print(result)
-#result.to_csv("results.csv", sep="\t", index=False)
-
+    # Map the terms in test data to their respective values
+    result = map_terms_to_values(test_data)
