@@ -16,17 +16,20 @@ import re
 
 sys.path.append('./functions')  # Add the 'src' directory to the sys.path
 import data_processing as dp
+import matchNamesBiologicalGender as mbg
 
 rdflib.plugin.register('turtle_custom', rdflib.plugin.Serializer, 'turtle_custom.serializer', 'TurtleSerializerCustom')
 
 # First set : Namespace declarations universal
 emi = Namespace("https://purl.org/emi#")
 emiBox = Namespace("https://purl.org/emi/abox#")
+emiGender = Namespace("https://purl.org/emi/biological-sex#")
 sosa = Namespace("http://www.w3.org/ns/sosa/")
 dcterms = Namespace("http://purl.org/dc/terms/")
 wd = Namespace("http://www.wikidata.org/entity/")
 prov = Namespace("http://www.w3.org/ns/prov#")
 wgs84 = Namespace("http://www.w3.org/2003/01/geo/wgs84_pos#")
+qudt = Namespace("http://qudt.org/schema/qudt/")
 nTemp = Namespace("http://example.com/base-ns#")
 
 # Second set : Namespaces for body part (anatomical entity) and life stage (developmental) names
@@ -61,7 +64,8 @@ prefix_to_namespace = {
     "PORO:" : poro,
     "RO:" : ro,
     "UBERON:" : uberon,
-    "PO:" : po
+    "PO:" : po,
+    "QUDT:" : qudt
 }
 
     
@@ -141,7 +145,8 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
         out_file.write("@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n")
         out_file.write("@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .\n")
         out_file.write("@prefix prov: <http://www.w3.org/ns/prov#> .\n")
-        out_file.write("@prefix wgs84: <http://www.w3.org/2003/01/geo/wgs84_pos#> .\n\n")
+        out_file.write("@prefix wgs84: <http://www.w3.org/2003/01/geo/wgs84_pos#> .\n")
+        out_file.write("@prefix qudt: <http://qudt.org/schema/qudt/> .\n\n")
 
     # Process in batches
     i=0
@@ -159,6 +164,7 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
         graph.bind("wd", wd)  # Bind the 'emi' prefix explicitly
         graph.bind("prov", prov)  # Bind the 'emi' prefix explicitly
         graph.bind("wgs84", wgs84)  # Bind the 'emi' prefix explicitly
+        graph.bind("qudt", qudt)  # Bind the 'emi' prefix explicitly
 #        graph.namespace_manager.bind("_", nTemp)
 
         # Process each row in the batch
@@ -239,29 +245,29 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
             if (dp.is_none_na_or_empty(row['targetLifeStageName']) or dp.is_none_na_or_empty(row['targetLifeStageId'])) and dp.is_none_na_or_empty(target_taxon_uri):
                 add_entity_to_graph("../ontology/data/globi/correctedLifeStageNamesGlobi.csv","InputTerm","BestMatch","URI",row['targetLifeStageName'],row['targetLifeStageId'],target_taxon_uri,emi.hasDevelopmentalStage, emi.DevelopmentalStage, "DEVELOPMENTAL_STAGE", graph)
 
-            #for physiological stage
-            if dp.is_none_na_or_empty(row['sourcePhysiologicalStateName']) and dp.is_none_na_or_empty(source_taxon_uri):
-                graph.add((source_taxon_uri, emi.hasPhysiologicalStage, Literal(row['sourcePhysiologicalStateName'], datatype=XSD.string)))
-            if dp.is_none_na_or_empty(row['targetPhysiologicalStateName']) and dp.is_none_na_or_empty(target_taxon_uri):
-                graph.add((target_taxon_uri, emi.hasPhysiologicalStage, Literal(row['targetPhysiologicalStateName'], datatype=XSD.string)))
-#            graph.add((source_taxon_uri, emi.hasSex, Literal(row['sourceSexName'], datatype=XSD.string)))
-
             #for biological sex
             if dp.is_none_na_or_empty(row['sourceSexName']) and dp.is_none_na_or_empty(source_taxon_uri):
-                graph.add((source_taxon_uri, emi.hasSex, Literal(row['sourceSexName'], datatype=XSD.string)))
+                genderDict = mbg.map_terms_to_values(row['sourceSexName'])
+                for uri, qty in genderDict.items():
+                    gData = BNode()
+                    graph.add((source_taxon_uri, emi.hasSex, gData))
+                    graph.add((gData, qudt.quantityKind, URIRef(uri)))  # Female
+                    graph.add((gData, qudt.numericValue, Literal(qty, datatype=XSD.integer)))
+
             if dp.is_none_na_or_empty(row['targetSexName']) and dp.is_none_na_or_empty(target_taxon_uri):
-                graph.add((target_taxon_uri, emi.hasSex, Literal(row['targetSexName'], datatype=XSD.string)))
-
-
-
-#            graph.add((source_taxon_uri, emi.hasAnatomicalEntity, URIRef(f"{bpName[row['sourceBodyPartName']]}")))
-#            graph.add((source_taxon_uri, emi.hasDevelopmentalStage, URIRef(f"{lsName[row['sourceLifeStageName']]}")))
-#            graph.add((source_taxon_uri, emi.hasPhysiologicalStage, Literal(row['sourcePhysiologicalStageName'], datatype=XSD.string)))
-#            graph.add((source_taxon_uri, emi.hasSex, Literal(row['sourceSexName'], datatype=XSD.string)))
-#            graph.add((URIRef(f"{bpName[row['sourceBodyPartName']]}"), RDFS.comment, Literal(row['sourceBodyPartName'],datatype=XSD.string)))
-#            graph.add((URIRef(f"{lsName[row['sourceLifeStageName']]}"), RDFS.comment, Literal(row['sourceLifeStageName'],datatype=XSD.string)))
-
-
+                genderDict = mbg.map_terms_to_values(row['targetSexName'])
+                for uri, qty in genderDict.items():
+                    gData = BNode()
+                    graph.add((source_taxon_uri, emi.hasSex, gData))
+                    graph.add((gData, qudt.quantityKind, URIRef(uri)))  # Female
+                    graph.add((gData, qudt.numericValue, Literal(qty, datatype=XSD.integer)))
+            
+            #for physiological stage on-hold still because not enough physiological stages defined
+            #if dp.is_none_na_or_empty(row['sourcePhysiologicalStateName']) and dp.is_none_na_or_empty(source_taxon_uri):
+            #    graph.add((source_taxon_uri, emi.hasPhysiologicalStage, Literal(row['sourcePhysiologicalStateName'], datatype=XSD.string)))
+            #if dp.is_none_na_or_empty(row['targetPhysiologicalStateName']) and dp.is_none_na_or_empty(target_taxon_uri):
+            #    graph.add((target_taxon_uri, emi.hasPhysiologicalStage, Literal(row['targetPhysiologicalStateName'], datatype=XSD.string)))
+            
             i = i + 1
         dp.add_inverse_relationships(graph)
         
