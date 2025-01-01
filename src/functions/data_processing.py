@@ -92,7 +92,7 @@ def format_uri(uri_part):
 
 import pandas as pd
 
-def create_dict_from_csv(csv_file, key_column, value_column):
+def create_dict_from_csv(csv_file1, key_column, value_column):
     """
     Create a dictionary from two columns in a CSV file using pandas.
     
@@ -101,7 +101,10 @@ def create_dict_from_csv(csv_file, key_column, value_column):
     :param value_column: Column name to use as values.
     :return: A dictionary where keys are from key_column and values are from value_column.
     """
-    df = pd.read_csv(csv_file, sep=",", dtype=str)
-    return dict(zip(df[key_column], df[value_column]))
+    df1 = pd.read_csv(csv_file1, sep=",", dtype=str)
+    #df2 = pd.read_csv(csv_file2, sep=",", dtype=str)
+    #result = pd.concat([df1, df2], ignore_index=True)
+
+    return dict(zip(df1[key_column], df1[value_column]))
 
 
