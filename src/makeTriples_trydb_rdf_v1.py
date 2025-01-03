@@ -94,7 +94,7 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
         graph.bind("dcterms", dcterms)  # Bind the 'dcterms' prefix explicitly
         graph.bind("wd", wd)  # Bind the 'wd' prefix explicitly
         graph.bind("qudt", qudt)  # Bind the 'qudt' prefix explicitly
-        graph.bind("qudtUnit", qudt)  # Bind the 'qudtUnit' prefix explicitly
+        graph.bind("qudtUnit", qudtUnit)  # Bind the 'qudtUnit' prefix explicitly
         #graph.namespace_manager.bind("_", nTemp)
 
         # Process each row in the batch
@@ -138,12 +138,24 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
             if dp.is_none_na_or_empty(row['OrigUnitStr']):
                 entity = row['OrigUnitStr']
                 if entity in eNamesDict1:
-                    print(row['OrigUnitStr']," ",qudtUnit[eNamesDict[entity]])
+                    #print(row['OrigUnitStr']," ",qudtUnit[eNamesDict1[entity]])
                     graph.add((result_bnode, qudt.hasUnit, URIRef(qudtUnit[eNamesDict1[entity]])))
 #                    graph.add((result_bnode, qudt.hasUnit, URIRef(emiUnit[dp.format_uri(entity.strip())])))
-                else:
-                    print(row['OrigUnitStr']," ",eNamesDict2[dp.format_uri(entity.strip())])
-                    graph.add((result_bnode, qudt.hasUnit, URIRef(eNamesDict2[dp.format_uri(entity.strip())])))
+                elif dp.is_none_na_or_empty(row['UnitName']):
+                    entity1 = row['UnitName']
+                    if entity1 in eNamesDict1:
+                        #print(entity1," ",qudtUnit[eNamesDict1[entity1]])
+                        graph.add((result_bnode, qudt.hasUnit, URIRef(qudtUnit[eNamesDict1[entity1]])))
+                    elif entity1 in eNamesDict2:
+                        #print(entity1," ",eNamesDict2[entity1.strip()])
+                        graph.add((result_bnode, qudt.hasUnit, URIRef(eNamesDict2[entity1.strip()])))
+                elif entity in eNamesDict2:
+                    #print(row['OrigUnitStr']," ",eNamesDict2[entity.strip()])
+                    graph.add((result_bnode, qudt.hasUnit, URIRef(eNamesDict2[entity.strip()])))
+                    #print(row['OrigUnitStr']," ",eNamesDict2[dp.format_uri(entity.strip())])
+                    #graph.add((result_bnode, qudt.hasUnit, URIRef(eNamesDict2[dp.format_uri(entity.strip())])))
+                graph.add((result_bnode, RDFS.comment, Literal(entity.strip(), datatype=XSD.string)))
+
 
 
             if pd.notna(row['WdID']):
