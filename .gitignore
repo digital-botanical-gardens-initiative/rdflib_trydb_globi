@@ -173,6 +173,7 @@ cython_debug/
 
 temp/
 ontology/data/backup/
-ontology/data/*/temp/
+ontology/data/globi/temp/
+ontology/data/trydb/temp/
 treeCurrent.txt
 *.swp
