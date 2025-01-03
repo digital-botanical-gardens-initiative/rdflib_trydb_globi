@@ -118,8 +118,8 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
         merged_data = dp.filter_file_runtime(input_csv_gz, data2, key_column=join_column)
     else:
         merged_data = pd.read_csv(input_csv_gz, compression="gzip", sep="\t", dtype=str, encoding="utf-8")
-    print("merged file with following dimensions")
-    print(merged_data.shape)
+    #print("merged file with following dimensions")
+    #print(merged_data.shape)
 
     #data1 = pd.read_csv(input_csv_gz, compression="gzip", sep="\t", dtype=str, encoding="utf-8", quoting=3)
     
@@ -153,8 +153,8 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
     for start_row in range(0, len(merged_data), batch_size):
         end_row = min(start_row + batch_size, len(merged_data))
         batch_data = merged_data[start_row:end_row]
-        print(batch_data.shape)
-        print(start_row)
+        #print(batch_data.shape)
+        #print(start_row)
 #        # Initialize a new graph for this batch
         graph = Graph()
         graph.bind("", emiBox)  # ":" will now map to "https://purl.org/emi/abox#"
@@ -173,7 +173,7 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
             source_taxon_uri = emiBox[f"SAMPLE-{dp.format_uri(row['sourceTaxonId'])}-inRec{i}"] if dp.is_none_na_or_empty(row['sourceTaxonId']) else None
             target_taxon_uri = emiBox[f"SAMPLE-{dp.format_uri(row['targetTaxonId'])}-inRec{i}"] if dp.is_none_na_or_empty(row['targetTaxonId']) else None
 
-            intxn_type_uri = emiBox[f"{row['interactionTypeName']}"] if dp.is_none_na_or_empty(row['interactionTypeName']) else None
+            intxn_type_uri = emiBox[f"INTERACTION-{row['interactionTypeName']}"] if dp.is_none_na_or_empty(row['interactionTypeName']) else None
             intxn_type_Id_uri = URIRef(f"{row['interactionTypeId']}") if dp.is_none_na_or_empty(row['interactionTypeId']) else None #maybe add RO as namespace
             intxnRec_uri = emiBox[f"inRec{i}"]
 
@@ -276,7 +276,7 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
             out_file.write(graph.serialize(format="turtle_custom"))
         # Clear the graph to free memory
         del graph
-        print(out_file)
+        #print(out_file)
 
     print(f"RDF triples saved to {output_file}")
 
