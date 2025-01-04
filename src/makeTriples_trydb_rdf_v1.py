@@ -33,7 +33,7 @@ qudtUnit = Namespace("http://qudt.org/vocab/unit/")
 
 
 
-def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, batch_size=1000):
+def generate_rdf_in_batches(input_csv_gz, wdMapping_csv, join_csv, output_file, join_column1, join_column2, batch_size=1000, ch=1):
     """
     Generate RDF triples in compact Turtle format using batches of rows and rdflib for serialization.
 
@@ -45,7 +45,7 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
     """
     # Load input data
     data1 = pd.read_csv(input_csv_gz, compression="gzip", sep="\t", dtype=str)
-    data2 = pd.read_csv(join_csv, sep="\t", dtype=str)
+    data2 = pd.read_csv(wdMapping_csv, sep="\t", dtype=str)
     
     # read units dict file
     dictFileNameQudt = "../ontology/data/trydb/qudtMappingToTryDb.txt"
@@ -54,13 +54,15 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
     eNamesDict2 = dp.create_dict_from_csv(dictFileNameEmi, "origUnit", "mapUnit")
 
     # Perform the join
-    merged_data = pd.merge(data1, data2[[join_column, "WdID"]],
-                           left_on="AccSpeciesName", right_on=join_column, how="left")
-    merged_data.drop(columns=[join_column], inplace=True)
+    merged_data = pd.merge(data1, data2[[join_column1, "WdID"]],
+                           left_on="AccSpeciesName", right_on=join_column1, how="left")
+    merged_data.drop(columns=[join_column1], inplace=True)
+    if(ch == 1):
+        data3 = pd.read_csv(join_csv, sep="\t", dtype=str)
+        merged_data = merged_data[merged_data['WdID'].isin(data3[join_column2])]
+
+        #merged_data = dp.filter_file_runtime(input_csv_gz, data3, key_column=join_column2)
     #print(merged_data.shape)
-
-
-
 
     
     # Open the output file for writing
@@ -182,13 +184,15 @@ if __name__ == "__main__":
 
     # Add arguments
     parser.add_argument('inputFile', type=str, help="Enter the file name for which you want the triples")
+    parser.add_argument('wdMappingFile', type=str, help="Enter the file name which will be used for mapping to WdIDs")
     parser.add_argument('joinFile', type=str, help="Enter the file name which will be used for filtering or joining the input_file")
     parser.add_argument('outputFile', type=str, help="Enter the output file name")
 
     # Parse the arguments
     args = parser.parse_args()
     csv_file1 = args.inputFile
-    csv_file2 = args.joinFile
+    csv_file2 = args.wdMappingFile
+    csv_file3 = args.joinFile
     output_file = args.outputFile
-    generate_rdf_in_batches(csv_file1, csv_file2, output_file, join_column="TRY_AccSpeciesName", batch_size=10000)
+    generate_rdf_in_batches(csv_file1, csv_file2, csv_file3, output_file, join_column1="TRY_AccSpeciesName",  join_column2 = "wd_taxon_id", batch_size=10000)
 
