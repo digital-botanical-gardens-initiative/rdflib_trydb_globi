@@ -15,20 +15,19 @@ Steps to follow:
 
 ```
 python makeTriples_trydb_rdf_v1.py <input trydb tsv-file> <wd mapping file to trydb species names> <enpkg wd ids> <output-file>
-
 python makeTriples_globi_rdf_v1.py <input globi tsv-file> <enpkg wd ids> <output-file>
-
 python makeTriples_taxonomy_rdf_v1.py <input taxonomy tsv-file> <enpkg wd ids> <output-file>
 ```
 
 
-5. Generate qlever sparql endpoint
+4. Generate qlever sparql endpoint
 
 a) Generate first set of index and start the server
 
-```qlever --qleverfile Qlever.try_globi index --overwrite-existing --parallel-parsing false```
-
-```qlever --qleverfile Qlever.try_globi start```
+```
+qlever --qleverfile Qlever.try_globi index --overwrite-existing --parallel-parsing false
+qlever --qleverfile Qlever.try_globi start
+```
 
 b) Generate void file for the triples 
 
@@ -38,9 +37,11 @@ Obtain [void-generator jar file](https://github.com/JervenBolleman/void-generato
 
 c) Generate second set of index and start the server for querying
 
-```qlever --qleverfile Qlever.try_globi stop```
-```qlever --qleverfile Qlever.try_globi.spql_editor index --overwrite-existing --parallel-parsing false```
-```qlever --qleverfile Qlever.try_globi start```
+```
+qlever --qleverfile Qlever.try_globi stop
+qlever --qleverfile Qlever.try_globi.spql_editor index --overwrite-existing --parallel-parsing false```
+qlever --qleverfile Qlever.try_globi start
+```
 
 
 
