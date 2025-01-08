@@ -1,0 +1,24 @@
+# Qleverfile for trydbGlobi
+
+[data]
+NAME              = try_globi
+DESCRIPTION       = integrated data on try, and globi 
+
+[index]
+INPUT_FILES     = data/*output*ttl.gz data/dublin_core_terms.ttl.gz data/sosa.ttl.gz data/emi.ttl.gz data/rdf.ttl.gz data/rdf-schema.ttl.gz
+CAT_INPUT_FILES = gunzip -c ${INPUT_FILES}
+SETTINGS_JSON   = { "ascii-prefixes-only": false, "num-triples-per-batch": 100000 }
+
+[server]
+PORT               = <port-name>
+ACCESS_TOKEN       = ${data:NAME}_xxxx
+MEMORY_FOR_QUERIES = 20G
+CACHE_MAX_SIZE     = 10G
+TIMEOUT            = 30s
+
+[runtime]
+SYSTEM = docker
+IMAGE  = docker.io/adfreiburg/qlever:latest
+
+[ui]
+#UI_CONFIG = trydbGlobi
