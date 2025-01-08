@@ -3,17 +3,24 @@ This repo consists of codes for generating triples from trydb, globi and taxonom
 Steps to follow:
 1. Generate globi tsv file
 
-```python globiDown.py <Globi tsv-file> categories.txt <output-file>```
+```
+cd modGLoBI
+python globiDown.py <Globi tsv-file> categories.txt <output-file>
+```
 
 
 2. Generate ontology mappings [LifestageNames (DevelopmentalStage) and BodyPartNames (AnatomicalEntity)]
 
-```python matchNamesToOntology.py <input-file> <output-file>```
+```
+cd ontology
+python matchNamesToOntology.py <input-file> <output-file>
+```
 
 
 3. Generate triples
 
 ```
+cd src
 python makeTriples_trydb_rdf_v1.py <input trydb tsv-file> <wd mapping file to trydb species names> <enpkg wd ids> <output-file>
 python makeTriples_globi_rdf_v1.py <input globi tsv-file> <enpkg wd ids> <output-file>
 python makeTriples_taxonomy_rdf_v1.py <input taxonomy tsv-file> <enpkg wd ids> <output-file>
@@ -25,6 +32,7 @@ python makeTriples_taxonomy_rdf_v1.py <input taxonomy tsv-file> <enpkg wd ids> <
 a) Generate first set of index and start the server
 
 ```
+cd qlever
 qlever --qleverfile Qlever.try_globi index --overwrite-existing --parallel-parsing false
 qlever --qleverfile Qlever.try_globi start
 ```
@@ -43,6 +51,15 @@ qlever --qleverfile Qlever.try_globi.spql_editor index --overwrite-existing --pa
 qlever --qleverfile Qlever.try_globi start
 ```
 
+5. Obtain the html file from [sparql-editor](https://github.com/JervenBolleman/void-generator)
+
+a) Copy the index.html file obtained to ```qlever/sparql-editor-index.html```. Add the appropriate js-file and the sparql endpoint to the html file.
+
+b) Start the server inside the qlever directory
+
+```python cors_server.py```
+
+c) Open the ```qlever/sparql-editor-index.html``` to query and explore the class overview.
 
 
 Tree structure and comments for each file
