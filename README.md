@@ -5,35 +5,35 @@ This repo consists of codes for generating triples from trydb, globi and taxonom
 │   ├── data
 │   │   ├── globi                                   #folder for ontology matches of body part and life stage names to ontologies like UBERON, PO, ENVO, PATO, etc.
 │   │   │   ├── correctedBodyPartNamesGlobi.csv
-│   │   │   ├── correctedLifeStageNamesGlobi.csv
 │   │   │   ├── mappedBodyPartNamesGlobi.csv
-│   │   │   ├── mappedLifeStageNamesGlobi.csv
 │   │   │   ├── unmappedBodyPartNamesGlobi.csv
-│   │   │   └── unmappedLifeStageNamesGlobi.csv
+│   │   │   ├── correctedLifeStageNamesGlobi.csv
+│   │   │   ├── mappedLifeStageNamesGlobi.csv
+│   │   │   │── unmappedLifeStageNamesGlobi.csv
+│   │   │   │── correctedBiologicalSexNames.tsv
+│   │   │   ├── mappedBiologicalSexNames.tsv
+│   │   │   ├── unmappedBiologicalSexNames.tsv
 │   │   ├── README.md
 │   │   └── trydb                                   #folder for ontology matches of units from trydb to quft
-│   │       ├── qudtMappingToTryDb_full.txt
-│   │       └── qudtMappingToTryDb.txt
-│   └── matchNamesToOntology.py                     #given a list of names, match them to ontology entities from UBERON, PO, ENVO, PATO, etc.
-├── README.md
-├── requirements.txt                                #pip install -r requirements.txt
-└── src                                             #main codes and functions for generating triples in turtle format
-    ├── functions
-    │   └── data_processing.py                      #functions to parse files, dataframes and strings
-    ├── makeTriples_globi_rdf_v1.py                 #main code to generate triples for globi interaction data
-    ├── makeTriples_taxonomy_rdf_v1.py              #main code to generate triples for taxonomy
-    ├── makeTriples_trydb_rdf_v1.py                 #main code to generate triples for trydb traits data
-    └── turtle_custom
-        └── serializer.py                          
-.
-├── README.md
-├── requirements.txt                        #pip install -r requirements.txt
-├── src                                     #main codes and functions for generating triples in turtle format.
-│   ├── functions
-│   │   └── data_processing.py              #functions to parse files, dataframes and strings
-│   ├── makeTriples_taxonomy_rdf_v1.py      #main code to generate triples for taxonomy
-│   └── makeTriples_trydb_rdf_v1.py         #main code to generate triples for trydb
-├── ontology                                
-    └── matchNamesToOntology.py             #given a list of names, match them to ontology entities from UBERON, PO, or ENVO
-
+│   │       ├── EmiMappingToTryDb.txt               #mapping of units (not in qudt)
+│   │       └── qudtMappingToTryDb.txt              #mapping of units present in qudt
+│   │── matchNamesToOntology.py                     #given a list of names, match them to ontology entities from UBERON, PO, ENVO, PATO, etc.
+│   └── matchNamesBiologicalGender.py               #given a list of gender names formatted inconsistently, match them to the vocabulary from PATO or emi
+│── src                                             #main codes and functions for generating triples in turtle format
+│   ├── functions
+│   │   │── data_processing.py                      #functions to parse files, dataframes and strings
+│   │   └── matchNamesBiologicalGender.py           #function to assign biological gender while maing the rdf triples
+│   ├── makeTriples_globi_rdf_v1.py                 #main code to generate triples for globi interaction data
+│   ├── makeTriples_taxonomy_rdf_v1.py              #main code to generate triples for taxonomy
+│   ├── makeTriples_trydb_rdf_v1.py                 #main code to generate triples for trydb traits data
+│   └── turtle_custom
+│       └── serializer.py                          
+├── qlever                                          #settings for qlever
+│   ├── cors_server.py                              #start a server with CORS enabled in python
+│   ├── data                                        #data for building qlever index
+│   ├── Qlever.try_globi                            #configuration for qlever without void and example ttls
+│   ├── Qlever.try_globi.spql_editor                #configuration for qlever with -void, examples- required for sparql-editor
+│   └── sparql_editor_index.html                    #implement sparql editor
+├── README.md           
+└── requirements.txt                                #pip install -r requirements.txt
 ```
