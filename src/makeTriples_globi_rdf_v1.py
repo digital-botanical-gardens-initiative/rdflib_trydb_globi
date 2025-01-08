@@ -251,16 +251,18 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
                 for uri, qty in genderDict.items():
                     gData = BNode()
                     graph.add((source_taxon_uri, emi.hasSex, gData))
-                    graph.add((gData, qudt.quantityKind, URIRef(uri)))  # Female
+                    graph.add((gData, qudt.quantityKind, URIRef(uri)))  
                     graph.add((gData, qudt.numericValue, Literal(qty, datatype=XSD.integer)))
+                    graph.add((URIRef(uri), RDF.type, emi.BiologicalSex))  
 
             if dp.is_none_na_or_empty(row['targetSexName']) and dp.is_none_na_or_empty(target_taxon_uri):
                 genderDict = mbg.map_terms_to_values(row['targetSexName'])
                 for uri, qty in genderDict.items():
                     gData = BNode()
                     graph.add((source_taxon_uri, emi.hasSex, gData))
-                    graph.add((gData, qudt.quantityKind, URIRef(uri)))  # Female
+                    graph.add((gData, qudt.quantityKind, URIRef(uri)))  
                     graph.add((gData, qudt.numericValue, Literal(qty, datatype=XSD.integer)))
+                    graph.add((URIRef(uri), RDF.type, emi.BiologicalSex))  
             
             #for physiological stage on-hold still because not enough physiological stages defined
             #if dp.is_none_na_or_empty(row['sourcePhysiologicalStateName']) and dp.is_none_na_or_empty(source_taxon_uri):
