@@ -22,8 +22,8 @@ Steps to follow:
 
 a) Generate first set of index and start the server
 
-```qlever --qleverfile Qlever.try_globi index --overwrite-existing --parallel-parsing false
-qlever --qleverfile Qlever.try_globi start```
+```qlever --qleverfile Qlever.try_globi index --overwrite-existing --parallel-parsing false```
+```qlever --qleverfile Qlever.try_globi start```
 
 b) Generate void file for the triples 
 
@@ -34,8 +34,8 @@ Obtain [void-generator jar file](https://github.com/JervenBolleman/void-generato
 c) Generate second set of index and start the server for querying
 
 ```qlever --qleverfile Qlever.try_globi stop```
-```qlever --qleverfile Qlever.try_globi.spql_editor index --overwrite-existing --parallel-parsing false
-qlever --qleverfile Qlever.try_globi start```
+```qlever --qleverfile Qlever.try_globi.spql_editor index --overwrite-existing --parallel-parsing false```
+```qlever --qleverfile Qlever.try_globi start```
 
 
 
