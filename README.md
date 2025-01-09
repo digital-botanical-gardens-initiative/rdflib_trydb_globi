@@ -25,11 +25,25 @@ python matchNamesToOntology.py data/globi/unmappedBodyPartNamesGlobi.csv data/gl
 
 3. Generate triples
 
+Place the tsv-files in ```qlever/data```.
+
+a) Make a config file ```config.txt``` (present in this folder) and update files and then run the respective scripts
+
 ```
 cd src
-python makeTriples_trydb_rdf_v1.py ../qlever/data/<input trydb tsv-file> <wd mapping file to trydb species names> <enpkg wd ids> <output-file>
-python makeTriples_globi_rdf_v1.py ../qlever/data/<input globi tsv-file> <enpkg wd ids> <output-file>
-python makeTriples_taxonomy_rdf_v1.py ../qlever/data/<input taxonomy tsv-file> <enpkg wd ids> <output-file>
+python makeTriples_trydb_rdf_v1.py
+python makeTriples_globi_rdf_v1.py
+python makeTriples_taxonomy_rdf_v1.py
+```
+OR
+
+b) If config file is not present, then add command-line arguments 
+
+```
+cd src
+python makeTriples_trydb_rdf_v1.py <trydb tsv-file> <enpkg wd ids> <output-file>
+python makeTriples_globi_rdf_v1.py <globi tsv-file> <enpkg wd ids> <output-file>
+python makeTriples_taxonomy_rdf_v1.py <taxonomy tsv-file> <enpkg wd ids> <output-file>
 ```
 
 
@@ -93,6 +107,7 @@ Tree structure and comments for each file
 │   │       └── qudtMappingToTryDb.txt              #mapping of units present in qudt
 │   └── matchNamesToOntology.py                     #given a list of names, match them to ontology entities from UBERON, PO, ENVO, PATO, etc.
 │── src                                             #main codes and functions for generating triples in turtle format
+│   ├── config.txt                                  #config file with locations to input, accessory and output files
 │   ├── functions
 │   │   │── data_processing.py                      #functions to parse files, dataframes and strings
 │   │   └── matchNamesBiologicalGender.py           #function to assign biological gender while maing the rdf triples
@@ -104,6 +119,7 @@ Tree structure and comments for each file
 ├── qlever                                          #settings for qlever
 │   ├── cors_server.py                              #start a server with CORS enabled in python
 │   ├── data                                        #data for building qlever index
+│   │   └── accessory                               #folder with accessory files
 │   ├── Qlever.try_globi                            #configuration for qlever without void and example ttls
 │   ├── Qlever.try_globi.spql_editor                #configuration for qlever with -void, examples- required for sparql-editor
 │   └── sparql_editor_index.html                    #implement sparql editor
