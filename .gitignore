@@ -177,3 +177,5 @@ ontology/data/globi/temp/
 ontology/data/trydb/temp/
 treeCurrent.txt
 *.swp
+qlever/data/accessory/*.txt
+qlever/data/accessory/*.csv
