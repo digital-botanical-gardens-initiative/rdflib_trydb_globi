@@ -284,18 +284,26 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
 
 # Main execution
 if __name__ == "__main__":
+    configFile = "config.txt"
+    if os.path.exists(file_path):       #if config file is available
+        config = configparser.ConfigParser()
+        config.read(configFile)
+        csv_file1 = config.get('tsv files', 'globi_tsv')
+        csv_file2 = config.get('accessory files', 'enpkg_wd')
+        output_file = config.get('output files', 'globi_ttl')
+    else:                               #else use command line arguments
+        # Create the argument parser
+        parser = argparse.ArgumentParser()
 
-    # Create the argument parser
-    parser = argparse.ArgumentParser()
+        # Add arguments
+        parser.add_argument('inputFile', type=str, help="Enter the file name for which you want the triples")
+        parser.add_argument('joinFile', type=str, help="Enter the file name which will be used for filtering or joining the input_file")
+        parser.add_argument('outputFile', type=str, help="Enter the output file name")
 
-    # Add arguments
-    parser.add_argument('inputFile', type=str, help="Enter the file name for which you want the triples")
-    parser.add_argument('joinFile', type=str, help="Enter the file name which will be used for filtering or joining the input_file")
-    parser.add_argument('outputFile', type=str, help="Enter the output file name")
+        # Parse the arguments
+        args = parser.parse_args()
+        csv_file1 = args.inputFile
+        csv_file2 = args.joinFile
+        output_file = args.outputFile
 
-    # Parse the arguments
-    args = parser.parse_args()
-    csv_file1 = args.inputFile
-    csv_file2 = args.joinFile
-    output_file = args.outputFile
     generate_rdf_in_batches(csv_file1, csv_file2, output_file, join_column="wd_taxon_id", batch_size=10000)

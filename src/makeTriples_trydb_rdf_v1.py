@@ -12,6 +12,8 @@ import gzip
 import rdflib
 import argparse
 import sys
+import configparser
+import os
 
 sys.path.append('./functions')  # Add the 'src' directory to the sys.path
 import data_processing as dp
@@ -178,21 +180,30 @@ def generate_rdf_in_batches(input_csv_gz, wdMapping_csv, join_csv, output_file, 
 
 # Main execution
 if __name__ == "__main__":
+    configFile = "config.txt"
+    if os.path.exists(file_path):       #if config file is available
+        config = configparser.ConfigParser()
+        config.read(configFile)
+        csv_file1 = config.get('tsv files', 'trydb_tsv')
+        csv_file2 = config.get('accessory files', 'trydb_wd')
+        csv_file3 = config.get('accessory files', 'enpkg_wd')
+        output_file = config.get('output files', 'trydb_ttl')
+    else:                               #else use command line arguments
+        # Create the argument parser
+        parser = argparse.ArgumentParser()
+    
+        # Add arguments
+        parser.add_argument('inputFile', type=str, help="Enter the file name for which you want the triples")
+        parser.add_argument('wdMappingFile', type=str, help="Enter the file name which will be used for mapping to WdIDs")
+        parser.add_argument('joinFile', type=str, help="Enter the file name which will be used for filtering or joining the input_file")
+        parser.add_argument('outputFile', type=str, help="Enter the output file name")
+    
+        # Parse the arguments
+        args = parser.parse_args()
+        csv_file1 = args.inputFile
+        csv_file2 = args.wdMappingFile
+        csv_file3 = args.joinFile
+        output_file = args.outputFile
 
-    # Create the argument parser
-    parser = argparse.ArgumentParser()
-
-    # Add arguments
-    parser.add_argument('inputFile', type=str, help="Enter the file name for which you want the triples")
-    parser.add_argument('wdMappingFile', type=str, help="Enter the file name which will be used for mapping to WdIDs")
-    parser.add_argument('joinFile', type=str, help="Enter the file name which will be used for filtering or joining the input_file")
-    parser.add_argument('outputFile', type=str, help="Enter the output file name")
-
-    # Parse the arguments
-    args = parser.parse_args()
-    csv_file1 = args.inputFile
-    csv_file2 = args.wdMappingFile
-    csv_file3 = args.joinFile
-    output_file = args.outputFile
     generate_rdf_in_batches(csv_file1, csv_file2, csv_file3, output_file, join_column1="TRY_AccSpeciesName",  join_column2 = "wd_taxon_id", batch_size=10000)
 
