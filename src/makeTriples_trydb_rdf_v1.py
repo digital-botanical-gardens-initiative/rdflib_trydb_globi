@@ -45,7 +45,7 @@ def generate_rdf_in_batches(input_csv_gz, wdMapping_csv, join_csv, output_file, 
     """
     # Load input data
     data1 = pd.read_csv(input_csv_gz, compression="gzip", sep="\t", dtype=str)
-    data2 = pd.read_csv(wdMapping_csv, sep="\t", dtype=str)
+    data2 = pd.read_csv(wdMapping_csv, compression="gzip", sep="\t", dtype=str)
     
     # read units dict file
     dictFileNameQudt = "../ontology/data/trydb/qudtMappingToTryDb.txt"
@@ -58,7 +58,7 @@ def generate_rdf_in_batches(input_csv_gz, wdMapping_csv, join_csv, output_file, 
                            left_on="AccSpeciesName", right_on=join_column1, how="left")
     merged_data.drop(columns=[join_column1], inplace=True)
     if(ch == 1):
-        data3 = pd.read_csv(join_csv, sep="\t", dtype=str)
+        data3 = pd.read_csv(join_csv, compression="gzip", sep="\t", dtype=str)
         merged_data = merged_data[merged_data['WdID'].isin(data3[join_column2])]
 
         #merged_data = dp.filter_file_runtime(input_csv_gz, data3, key_column=join_column2)

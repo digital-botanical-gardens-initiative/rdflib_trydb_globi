@@ -44,7 +44,7 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
     """
     # Load input data
     data1 = pd.read_csv(input_csv_gz, compression="gzip", sep="\t", dtype=str)
-    data2 = pd.read_csv(join_csv, sep="\t", dtype=str)
+    data2 = pd.read_csv(join_csv, compression="gzip",  sep="\t", dtype=str)
 
     # Filter the taxonomy data to include only rows with WdID found in enpkg['wd_taxon_id']
     merged_data = data1[data1['WdID'].isin(data2[join_column])]
