@@ -5,7 +5,7 @@ Steps to follow:
 
 ```
 cd modGLoBI
-python globiDown.py <Globi tsv-file> categories.txt <output-file>
+python globiDown.py <Globi tsv-file> categories.txt qlever/data/<output-file>
 ```
 
 
@@ -16,14 +16,20 @@ cd ontology
 python matchNamesToOntology.py <input-file> <output-file>
 ```
 
+e.g:
+```
+python matchNamesToOntology.py data/globi/unmappedBodyPartNamesGlobi.csv data/globi/mappedBodyPartNamesGlobi.csv
+```
+
+
 
 3. Generate triples
 
 ```
 cd src
-python makeTriples_trydb_rdf_v1.py <input trydb tsv-file> <wd mapping file to trydb species names> <enpkg wd ids> <output-file>
-python makeTriples_globi_rdf_v1.py <input globi tsv-file> <enpkg wd ids> <output-file>
-python makeTriples_taxonomy_rdf_v1.py <input taxonomy tsv-file> <enpkg wd ids> <output-file>
+python makeTriples_trydb_rdf_v1.py ../qlever/data/<input trydb tsv-file> <wd mapping file to trydb species names> <enpkg wd ids> <output-file>
+python makeTriples_globi_rdf_v1.py ../qlever/data/<input globi tsv-file> <enpkg wd ids> <output-file>
+python makeTriples_taxonomy_rdf_v1.py ../qlever/data/<input taxonomy tsv-file> <enpkg wd ids> <output-file>
 ```
 
 
