@@ -37,7 +37,8 @@ def filter_file_runtime(file_path, filter_df, key_column):
     return matching_rows
 
 # Define a function for real-time filtering by phylum name
-def filter_file_runtime_taxonomy(file_path, filter_df, key_column):
+def filter_file_runtime_taxonomy(file_path):
+    # Here, neither filter_df nor key_column are bieng used.
     # Read the file in chunks for runtime processing
     cs = 10000  # Adjust chunk size as needed
     matching_rows = pd.DataFrame()  # To store filtered rows
