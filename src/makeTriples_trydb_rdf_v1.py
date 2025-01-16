@@ -14,6 +14,7 @@ import argparse
 import sys
 import configparser
 import os
+import re
 
 sys.path.append('./functions')  # Add the 'src' directory to the sys.path
 import data_processing as dp
@@ -129,14 +130,23 @@ def generate_rdf_in_batches(input_csv_gz, wdMapping_csv, join_csv, output_file, 
                 if dp.is_none_na_or_empty(row['DataType']):
                     if (row['DataType'] == "Trait"):
                         graph.add((result_bnode, RDF.type, emi.Trait))
+                        if dp.is_none_na_or_empty(row['OrigValueStr']):
+                            #pattern = r"[-]?[0-9]+[\.]?[0-9]*"
+                            pattern = r"-?[0-9]+(\.[0-9]+)?(E[+-][0-9]+)?"
+                            if(re.fullmatch(pattern, row['OrigValueStr'])):
+                                graph.add((result_bnode, RDF.value, Literal(row['OrigValueStr'], datatype=XSD.double)))
+                            else:
+                                graph.add((result_bnode, RDF.value, Literal(row['OrigValueStr'], datatype=XSD.string)))
                     elif (row['DataType'] == "Non-trait"):
                         graph.add((result_bnode, RDF.type, emi.NonTrait))
+                        if dp.is_none_na_or_empty(row['OrigValueStr']):
+                            graph.add((result_bnode, RDF.value, Literal(row['OrigValueStr'], datatype=XSD.string)))
             if dp.is_none_na_or_empty(row['DataName']):
                 graph.add((result_bnode, RDFS.label, Literal(row['DataName'], datatype=XSD.string)))
             if dp.is_none_na_or_empty(row['DataID']):
                 graph.add((result_bnode, dcterms.identifier, Literal(row['DataID'], datatype=XSD.string)))
-            if dp.is_none_na_or_empty(row['OrigValueStr']):
-                graph.add((result_bnode, RDF.value, Literal(row['OrigValueStr'], datatype=XSD.string)))
+            #if dp.is_none_na_or_empty(row['OrigValueStr']):
+            #    graph.add((result_bnode, RDF.value, Literal(row['OrigValueStr'], datatype=XSD.string)))
 
             #Add units
             if dp.is_none_na_or_empty(row['OrigUnitStr']):
@@ -181,7 +191,7 @@ def generate_rdf_in_batches(input_csv_gz, wdMapping_csv, join_csv, output_file, 
 # Main execution
 if __name__ == "__main__":
     configFile = "config.txt"
-    if os.path.exists(file_path):       #if config file is available
+    if os.path.exists(configFile):       #if config file is available
         config = configparser.ConfigParser()
         config.read(configFile)
         csv_file1 = config.get('tsv files', 'trydb_tsv')
