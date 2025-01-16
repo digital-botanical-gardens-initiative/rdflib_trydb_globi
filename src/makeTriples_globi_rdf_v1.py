@@ -117,7 +117,7 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
 
     if(ch == 1):
         data2 = pd.read_csv(join_csv, compression="gzip", sep="\t", dtype=str)
-        merged_data = dp.filter_file_runtime_taxonomy(input_csv_gz, data2, key_column=join_column)
+        merged_data = dp.filter_file_runtime_taxonomy(input_csv_gz)
     else:
         merged_data = pd.read_csv(input_csv_gz, compression="gzip", sep="\t", dtype=str, encoding="utf-8")
     print("merged file with following dimensions")
