@@ -188,7 +188,7 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
 # Main execution
 if __name__ == "__main__":
     configFile = "config.txt"
-    if os.path.exists(file_path):       #if config file is available
+    if os.path.exists(configFile):       #if config file is available
         config = configparser.ConfigParser()
         config.read(configFile)
         csv_file1 = config.get('tsv files', 'taxonomy_tsv')
