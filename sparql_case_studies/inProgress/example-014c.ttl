@@ -1,0 +1,64 @@
+@prefix ex: <https://purl.org/emi#examples> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+
+ex:011 a sh:SPARQLExecutable,
+        sh:SPARQLSelectExecutable ;
+    rdfs:comment "## List of possible interactions and natural locations of plants, which produce Flavonoids (wd:Q3561192)-Too many results."@en ;
+    sh:prefixes _:sparql_examples_prefixes ;
+    sh:select """
+		PREFIX wd: <http://www.wikidata.org/entity/>
+		PREFIX wd: <http://www.wikidata.org/entity/>
+		PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+		PREFIX enpkg: <https://enpkg.commons-lab.org/kg/>
+		PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+		PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+		PREFIX emi: <https://purl.org/emi#>
+		PREFIX sosa: <http://www.w3.org/ns/sosa/>
+		PREFIX dcterms: <http://purl.org/dc/terms/>
+		PREFIX qudt: <https://qudt.org/2.1/schema/qudt#>
+		PREFIX npc: <https://purl.org/npc#>
+		PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+		PREFIX prov: <http://www.w3.org/ns/prov#>
+		PREFIX wgs: <http://www.w3.org/2003/01/geo/wgs84_pos#>
+		SELECT DISTINCT ?wdx ?sourceNameURI ?loc ?lats ?longs ?npcClass ?npcSuperClass
+		WHERE
+		    {
+		     { SELECT DISTINCT ?wdx ?npcClass ?npcSuperClass WHERE {
+		        ?material sosa:hasSample ?extract ;
+		                sosa:isSampleOf ?organe .
+		        ?organe emi:inTaxon ?wdx .
+		        ?extract sosa:isFeatureOfInterestOf ?lcms .
+		        ?lcms sosa:hasResult ?feature_list .
+		        ?feature_list emi:hasLCMSFeature ?feature .
+		        ?feature emi:hasAnnotation ?sirius_annotation .
+		        ?sirius_annotation a emi:StructuralAnnotation ;
+		                emi:hasChemicalStructure ?ik2d .
+		        ?ik2d emi:hasSMILES ?smiles ;
+		                emi:isInChIKey2DOf ?ik ;
+		                emi:hasClass ?npcClass .
+				?npcClass skos:broader ?npcSuperClass .
+		        ?structure_inchikey emi:isInChIKeyOf ?wd_chem .
+				VALUES ?npcSuperClass { npc:FLAVONOIDS }
+		        }}
+		        UNION
+			  { SERVICE <https://qlever.cs.uni-freiburg.de/api/wikidata> {
+			 ?wd_chem wdt:P235 ?structure_inchikey ;
+			 wdt:P279 wd:Q3561192 ;
+   			 wdt:P703 ?wdx .
+		} }
+		    
+		        ?source emi:inTaxon ?wdx ;
+				    sosa:isSampleOf ?sourceName .
+			    ?intxn emi:hasSource ?source ;
+			     emi:hasTarget ?target
+				prov:atLocation ?loc ;
+				wgs:lat ?lats ; wgs:long ?longs .
+				?target	sosa:isSampleOf ?targetName .
+		BIND(REPLACE(STR(?sourceName), "%20", " ") AS ?sourceNameX)
+		BIND(IRI(?sourceNameX) AS ?sourceNameURI)
+		
+	}
+""" ;
+    schema:target <https://purl.org/emi> .

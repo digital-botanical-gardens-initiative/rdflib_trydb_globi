@@ -1,0 +1,72 @@
+@prefix ex: <https://purl.org/emi#examples> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix schema: <https://schema.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+
+ex:011 a sh:SPARQLExecutable,
+        sh:SPARQLSelectExecutable ;
+    rdfs:comment "## List possible interactions of plants that can produce asimcin (wd:Q100138042), a cytotoxin."@en ;
+    sh:prefixes _:sparql_examples_prefixes ;
+    sh:select """
+  		PREFIX wd: <http://www.wikidata.org/entity/>
+                PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+                PREFIX enpkg: <https://enpkg.commons-lab.org/kg/>
+                PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
+                PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+                PREFIX emi: <https://purl.org/emi#>
+                PREFIX sosa: <http://www.w3.org/ns/sosa/>
+                PREFIX dcterms: <http://purl.org/dc/terms/>
+                PREFIX wgs: <http://www.w3.org/2003/01/geo/wgs84_pos#>
+                PREFIX prov: <http://www.w3.org/ns/prov#>
+
+               PREFIX wd: <http://www.wikidata.org/entity/>
+ SELECT DISTINCT ?sourceWD ?sourceNameURI ?intxnName ?targetWD ?targetNameURI
+                WHERE
+                    {               
+                    {
+                            ?xOrg emi:inTaxon ?sourceWD ;
+							sosa:isSampleOf ?sourceName .
+                            ?intxn emi:hasSource ?xOrg ;
+                                   emi:hasTarget ?yOrg ;
+                                   emi:isClassifiedWith ?intxnName .
+			    §§§?yOrg emi:inTaxon ?targetWD ;
+							sosa:isSampleOf ?targetName .
+                       }
+                       SERVICE <https://qlever.cs.uni-freiburg.de/api/wikidata> {
+		  		?sourceWD wdt:P171* ?rankS .  
+		  		?targetWD wdt:P171* ?rankT .
+		  		VALUES ?ranks { wd:Q1390 }  
+		  	}
+		  	
+		  	
+                      { SELECT DISTINCT ?wd_chem WHERE {
+                        ?material sosa:hasSample ?extract ;
+                                sosa:isSampleOf ?organe .
+                        ?organe emi:inTaxon ?xWD .
+                        VALUES ?xWD { ?sourceWD ?targetWD }
+                        ?extract sosa:isFeatureOfInterestOf ?lcms .
+                        ?lcms sosa:hasResult ?feature_list .
+                        ?feature_list emi:hasLCMSFeature ?feature .
+                        ?feature emi:hasAnnotation ?sirius_annotation .
+                        ?sirius_annotation a emi:StructuralAnnotation ;
+                                emi:hasChemicalStructure ?ik2d .
+                        ?ik2d emi:hasSMILES ?smiles ;
+                                emi:isInChIKey2DOf ?ik .
+                        ?ik emi:isInChIKeyOf ?wd_chem .
+                        VALUES ?wd_chem { wd:Q27107545 }
+                        }
+                      }  UNION
+			  { SERVICE <https://qlever.cs.uni-freiburg.de/api/wikidata> {
+			 ?wd_chem wdt:P235 ?ik ;
+   			 wdt:P703 ?sourceWD .
+			 VALUES ?wd_chem { wd:Q27107545 }
+		} }
+			
+			  BIND(REPLACE(STR(?sourceName), "%20", " ") AS ?sourceNameX)
+			  BIND(IRI(?sourceNameX) AS ?sourceNameURI)
+			  BIND(REPLACE(STR(?targetName), "%20", " ") AS ?targetNameX)
+			  BIND(IRI(?targetNameX) AS ?targetNameURI)
+                    
+                }
+""" ;
+    schema:target <https://purl.org/emi> .
