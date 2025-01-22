@@ -179,3 +179,4 @@ treeCurrent.txt
 *.swp
 qlever/data/accessory/*.txt
 qlever/data/accessory/*.csv
+node_modules
