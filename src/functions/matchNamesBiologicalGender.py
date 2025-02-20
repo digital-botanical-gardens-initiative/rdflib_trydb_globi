@@ -2,18 +2,16 @@ import pandas as pd
 import re
 
 
-# Preprocessing functions
+# Preprocessing functions - Lowercase, autocorrect, and remove extra characters (plural)
 def preprocess_term(term):
-    """Lowercase, autocorrect, and remove extra characters (plural)."""
     term = term.lower().strip()  # Convert to lowercase and remove extra spaces
     if "mono" not in term and "auto" not in term:
         if term.endswith('s'):
             term = term[:-1]  # Remove trailing 's' to handle plurals
     return term
 
-# Functions for mapping biological gender
+# Functions for mapping biological gender - Match the biological gender values
 def map_terms_to_values(term):
-    """Match the biological gender values."""
     # File paths
     dataFile = "/home/drishti/Documents/Projects/DBGI/gitReposMine/rdflib_trydb_globi/ontology/data/globi/correctedBiologicalSexNames.tsv"
     # Load data
