@@ -2,6 +2,7 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix schema: <https://schema.org/> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix spex:<https://purl.expasy.org/sparql-examples/ontology#> .
 
 ex:021 a sh:SPARQLExecutable,
         sh:SPARQLSelectExecutable ;
@@ -19,15 +20,17 @@ PREFIX dcterms: <http://purl.org/dc/terms/>
 PREFIX wgs: <http://www.w3.org/2003/01/geo/wgs84_pos#>
 PREFIX prov: <http://www.w3.org/ns/prov#>
 
-SELECT DISTINCT ?sourceWD ?sourceNameURI ?intxnName ?targetWD ?targetNameURI ?loc WHERE {
+SELECT DISTINCT ?sourceWD ?sourceName ?intxnName ?targetWD ?targetName ?loc WHERE {
 	?intxn emi:hasSource ?xOrg ;				 #retrieve interaction-pairs
                emi:hasTarget ?yOrg ;
 	       emi:isClassifiedWith ?intxnName ;
 	       prov:atLocation ?loc .				 #retrieve location of interactions
 	?xOrg emi:inTaxon ?sourceWD ;				 #retrieve interaction-source and its scientific name as listed in GloBI
-	      sosa:isSampleOf ?sourceName .
+	      rdfs:label ?sourceName ;
+	      sosa:isSampleOf ?sourceSample .
 	?yOrg emi:inTaxon ?targetWD ;				 #retrieve interaction-target and its scientific name as listed in GloBI
-	      sosa:isSampleOf ?targetName .
+	      rdfs:label ?targetName ;
+	      sosa:isSampleOf ?targetSample .
 
         { SELECT DISTINCT ?targetWD ?wd_chem WHERE {		#retrieve metabolites
 	        ?material sosa:hasSample ?extract ;
@@ -49,10 +52,7 @@ SELECT DISTINCT ?sourceWD ?sourceNameURI ?intxnName ?targetWD ?targetNameURI ?lo
    			 wdt:P703 ?targetWD .
 		 VALUES ?wd_chem { wd:Q27107580 }
 	}}
-	BIND(REPLACE(STR(?sourceName), "%20", " ") AS ?sourceNameX)	#remove percent encodings of source and target scientific names
-	BIND(IRI(?sourceNameX) AS ?sourceNameURI)
-	BIND(REPLACE(STR(?targetName), "%20", " ") AS ?targetNameX)
-	BIND(IRI(?targetNameX) AS ?targetNameURI)
 } 
 """ ;
-    schema:target <https://purl.org/emi> .
+    schema:target <https://biosoda.unil.ch/emi/sparql/> ;
+    spex:federatesWith <https://qlever.cs.uni-freiburg.de/api/wikidata> .

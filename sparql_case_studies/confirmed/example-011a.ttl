@@ -2,6 +2,7 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix schema: <https://schema.org/> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix spex:<https://purl.expasy.org/sparql-examples/ontology#> .
 
 ex:011a a sh:SPARQLExecutable,
         sh:SPARQLSelectExecutable ;
@@ -14,16 +15,16 @@ ex:011a a sh:SPARQLExecutable,
                 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
                 PREFIX wdt: <http://www.wikidata.org/prop/direct/>
                 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
-                SELECT DISTINCT ?wdx_Source ?sourceNameURI ?intxnLabel ?intxnType ?wdx_Target ?targetNameURI WHERE {
+                SELECT DISTINCT ?wdx_Source ?sourceName ?intxnLabel ?intxnType ?wdx_Target ?targetName WHERE {
 			{ SELECT DISTINCT ?wdx_Target ?targetName ?sourceName ?wdx_Source ?intxnType WHERE { #first select the source-target interaction-pairs
                 		?intxn emi:hasSource ?source ;
 					emi:hasTarget ?target ;
 					emi:isClassifiedWith ?intxnType . 	#unidirectional interaction, e.g.: source-X hosts target target-Y
 				?intxnType rdfs:label ?intxnLabel .
                 		?source emi:inTaxon ?wdx_Source ;         	#retrieve wikidata-id for source
-					sosa:isSampleOf ?sourceName . 	  	#scientific name of source as given in GloBI
+					rdfs:label ?sourceName . 	  	#scientific name of source as given in GloBI
                 		?target emi:inTaxon ?wdx_Target ;	  	#retrieve wikidata-id for target
-					sosa:isSampleOf ?targetName . 		#scientific name of target as given in GloBI
+					rdfs:label ?targetName . 		#scientific name of target as given in GloBI
 			}}
 			SERVICE <https://qlever.cs.uni-freiburg.de/api/wikidata> {
                  		{
@@ -36,10 +37,7 @@ ex:011a a sh:SPARQLExecutable,
                  		}
 
                     	}
-			BIND(REPLACE(STR(?sourceName), "%20", " ") AS ?sourceNameX)	#remove percent-encoding for scientific names of source-X
-			BIND(IRI(?sourceNameX) AS ?sourceNameURI)		
-			BIND(REPLACE(STR(?targetName), "%20", " ") AS ?targetNameX)	#remove percent-encoding for scientific names of target-Y
-			BIND(IRI(?targetNameX) AS ?targetNameURI)
                 }
 """ ;
-    schema:target <https://purl.org/emi> .
+    schema:target <https://biosoda.unil.ch/emi/sparql/> ;
+    spex:federatesWith <https://qlever.cs.uni-freiburg.de/api/wikidata> .

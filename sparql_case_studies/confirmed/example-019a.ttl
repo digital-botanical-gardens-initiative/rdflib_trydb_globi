@@ -2,6 +2,7 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix schema: <https://schema.org/> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix spex:<https://purl.expasy.org/sparql-examples/ontology#> .
 
 ex:019a a sh:SPARQLExecutable,
         sh:SPARQLSelectExecutable ;
@@ -22,7 +23,7 @@ PREFIX emiBox: <https://purl.org/emi/abox#>
 PREFIX wikibase: <http://wikiba.se/ontology#>
 PREFIX bd: <http://www.bigdata.com/rdf#>
 
-SELECT DISTINCT ?parasitoidX_WD ?parasitoidNameURI ?intxn2Label ?parasiteX_WD ?parasiteNameURI ?intxn3Label ?hostPlant_WD ?hostPlantNameURI ?study1_DOI ?study2_DOI
+SELECT DISTINCT ?parasitoidX_WD ?parasitoidName ?intxn2Label ?parasiteX_WD ?parasiteName ?intxn3Label ?hostPlant_WD ?hostPlantName ?study1_DOI ?study2_DOI
 WHERE {
 	{ SELECT DISTINCT ?parasitoidName ?parasiteName ?parasiteX_WD ?intxn2Label ?parasitoidX_WD ?study1_DOI WHERE {
 		?intxn2 emi:hasSource ?parasitoidX ;					#retrieve interaction pairs part-1
@@ -31,9 +32,11 @@ WHERE {
 		FILTER (REGEX(STR(?intxnName2), "RO_0002208"))				#keep interactions only if the interaction-id is RO_0002208 (parasitoidOf), e.g: 'parasitoidX' is 'parasitoidOf' 'parasiteX'
 		?intxnName2 rdfs:label ?intxn2Label .		
 		?parasitoidX emi:inTaxon ?parasitoidX_WD ;				#retreieve wikidata-ids for parasitoidX
-			     sosa:isSampleOf ?parasitoidName .				#retrieve scientific name of parasitoidX as listed in GloBI
+			     rdfs:label ?parasitoidName ;
+			     sosa:isSampleOf ?parasitoidSample .				#retrieve scientific name of parasitoidX as listed in GloBI
 		?parasiteX emi:inTaxon ?parasiteX_WD ;					#retreieve wikidata-ids for parasiteX
-			   sosa:isSampleOf ?parasiteName .				#retreieve scientific name for parasiteX as listed in GloBI
+			   rdfs:label ?parasiteName ;
+			   sosa:isSampleOf ?parasiteSample .				#retreieve scientific name for parasiteX as listed in GloBI
 		OPTIONAL { 
 			?intxn2 dcterms:bibliographicCitation ?study1_DOI . 		#optionally retrieve the doi of the study for parasitoid-parasite pairs
 		}
@@ -44,7 +47,8 @@ WHERE {
     		emi:isClassifiedWith ?intxnName3 .
 	?intxnName3 rdfs:label ?intxn3Label .
 	?hostPlant emi:inTaxon ?hostPlant_WD ;						#retreieve wikidata-ids for hostPlant
-		   sosa:isSampleOf ?hostPlantName .					#retreieve scientific name for hostPlant as listed in GloBI
+	           rdfs:label ?hostPlantName ;
+		   sosa:isSampleOf ?hostPlantSample .					#retreieve scientific name for hostPlant as listed in GloBI
 	OPTIONAL { 
 		?intxn3 dcterms:bibliographicCitation ?study2_DOI . 
 	}
@@ -52,12 +56,7 @@ WHERE {
 	SERVICE <https://qlever.cs.uni-freiburg.de/api/wikidata> {
 	 	?hostPlant_WD wdt:P171* wd:Q879246 . 					#keep the interaction pairs part-2 only if hostPlant_WD has Kingdom Archaeplastida (wd:Q879246) in its lineage, this is to ensure the hostPlant is really a plant
 	}
-	BIND(REPLACE(STR(?parasiteName), "%20", " ") AS ?parasiteNameX)			#remove percent encodings from parasite scientific name
-	BIND(IRI(?parasiteNameX) AS ?parasiteNameURI)
-	BIND(REPLACE(STR(?parasitoidName), "%20", " ") AS ?parasitoidNameX)		#remove percent encodings from parasitoid scientific name
-	BIND(IRI(?parasitoidNameX) AS ?parasitoidNameURI)
-	BIND(REPLACE(STR(?hostPlantName), "%20", " ") AS ?hostPlantNameX)		#remove percent encodings from hostPlant scientific name
-	BIND(IRI(?hostPlantNameX) AS ?hostPlantNameURI)
 } LIMIT 1000
 """ ;
-    schema:target <https://purl.org/emi> .
+    schema:target <https://biosoda.unil.ch/emi/sparql/> ;
+    spex:federatesWith <https://qlever.cs.uni-freiburg.de/api/wikidata> .

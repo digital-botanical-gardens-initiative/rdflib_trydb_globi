@@ -2,6 +2,7 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix schema: <https://schema.org/> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix spex:<https://purl.expasy.org/sparql-examples/ontology#> .
 
 ex:012 a sh:SPARQLExecutable,
         sh:SPARQLSelectExecutable ;
@@ -17,9 +18,10 @@ ex:012 a sh:SPARQLExecutable,
 		PREFIX dcterms: <http://purl.org/dc/terms/>
 		PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 		
-		SELECT DISTINCT ?structure_inchikey ?wd_chem ?source_wdx ?sourceNameURI WHERE {
+		SELECT DISTINCT ?structure_inchikey ?wd_chem ?source_wdx ?sourceName WHERE {
 
 			?trySpObs sosa:isSampleOf ?trySpName ;					#retrieve trait/non-trait data for trySpName (scientific name of plant species as listed in trydb)
+				  rdfs:label ?sourceName ;
 				  sosa:isFeatureOfInterestOf ?tryObId .
 			?tryObId sosa:hasResult ?tryData .
 			?trySpName emi:inTaxon ?source_wdx .						#retrieve wikidata-ids wdx for trySpName
@@ -31,8 +33,6 @@ ex:012 a sh:SPARQLExecutable,
 		 	SERVICE <https://qlever.cs.uni-freiburg.de/api/wikidata> {
                    		?source_wdx wdt:P141 wd:Q719675 .					#filter wikidata-ids for trySpName, which have IUCN status (wdt:P141) as near threatened (wd:Q719675)
                     	}
-			BIND(REPLACE(STR(?trySpName), "%20", " ") AS ?sourceNameX)		#remove percent-encoding for scientific names of trySpName
-			BIND(IRI(?sourceNameX) AS ?sourceNameURI)
 		 
 		      { SELECT ?source_wdx ?structure_inchikey ?wd_chem WHERE {			#retrieve metabolite data
 				?material sosa:hasSample ?extract ;				
@@ -55,4 +55,6 @@ ex:012 a sh:SPARQLExecutable,
 			}}
   		} LIMIT 1000
 		""" ;
-    schema:target <https://purl.org/emi> .
+    schema:target <https://biosoda.unil.ch/emi/sparql/> ;
+    spex:federatesWith <https://qlever.cs.uni-freiburg.de/api/wikidata> .
+

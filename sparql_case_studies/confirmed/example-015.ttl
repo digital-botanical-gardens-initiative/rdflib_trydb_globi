@@ -2,6 +2,7 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix schema: <https://schema.org/> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix spex:<https://purl.expasy.org/sparql-examples/ontology#> .
 
 ex:015 a sh:SPARQLExecutable,
         sh:SPARQLSelectExecutable ;
@@ -19,7 +20,7 @@ ex:015 a sh:SPARQLExecutable,
                 PREFIX wgs: <http://www.w3.org/2003/01/geo/wgs84_pos#>
                 PREFIX prov: <http://www.w3.org/ns/prov#>
                                                                                          
-                SELECT DISTINCT ?sourceWD ?sourceNameURI ?intxnName ?intxnLabel ?targetWD ?targetNameURI ?ik ?wd_chem
+                SELECT DISTINCT ?sourceWD ?sourceName ?intxnName ?intxnLabel ?targetWD ?targetName ?ik ?wd_chem
                 WHERE {   
                 	{SELECT DISTINCT ?sourceWD ?sourceName ?intxnName ?intxnLabel ?targetWD ?targetName WHERE {
                 		
@@ -27,9 +28,11 @@ ex:015 a sh:SPARQLExecutable,
                 		       emi:hasTarget ?target ;
                                        emi:isClassifiedWith ?intxnName .	
                             	?target emi:inTaxon ?targetWD ;					#retrieve wikidata-id for target plant 
-					sosa:isSampleOf ?targetName .
+					sosa:isSampleOf ?targetSample ;
+					rdfs:label ?targetName .
 				?source emi:inTaxon ?sourceWD ;					#retrieve wikidata-id for source parasite
-					sosa:isSampleOf ?sourceName .
+					sosa:isSampleOf ?sourceSample .
+					rdfs:label ?sourceName .
 				?intxnName rdfs:label ?intxnLabel
                             	VALUES ?sourceWD { wd:Q7102162 }				#retain results only if the source-WD matches the wikidata-id of Orgyia postica
                         }
@@ -52,10 +55,7 @@ ex:015 a sh:SPARQLExecutable,
 		      		?wd_chem wdt:P235 ?ik ;
 					 wdt:P703 ?targetWD .			
 		      }}
-		      BIND(REPLACE(STR(?sourceName), "%20", " ") AS ?sourceNameX)		#remove percent encodings from the sourceName
-		      BIND(IRI(?sourceNameX) AS ?sourceNameURI)
-		      BIND(REPLACE(STR(?targetName), "%20", " ") AS ?targetNameX)		#remove percent encodings from the targetName
-		      BIND(IRI(?targetNameX) AS ?targetNameURI)
                 }  
 """ ;
-    schema:target <https://purl.org/emi> .
+    schema:target <https://biosoda.unil.ch/emi/sparql/> ;
+    spex:federatesWith <https://qlever.cs.uni-freiburg.de/api/wikidata> .

@@ -2,6 +2,7 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix schema: <https://schema.org/> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix spex:<https://purl.expasy.org/sparql-examples/ontology#> .
 
 ex:018 a sh:SPARQLExecutable,
         sh:SPARQLSelectExecutable ;
@@ -18,9 +19,8 @@ ex:018 a sh:SPARQLExecutable,
                 PREFIX dcterms: <http://purl.org/dc/terms/>
                 PREFIX wgs: <http://www.w3.org/2003/01/geo/wgs84_pos#>
                 PREFIX prov: <http://www.w3.org/ns/prov#>
-		PREFIX wd: <http://www.wikidata.org/entity/>
                
-		SELECT DISTINCT ?sourceWD ?sourceNameURI ?intxnName ?targetWD ?targetNameURI WHERE {
+		SELECT DISTINCT ?sourceWD ?sourceName ?intxnName ?targetWD ?targetName WHERE {
 		{ SELECT DISTINCT ?wd_chem WHERE {				#retrieve metabolite data for sourceWD
 			?material sosa:hasSample ?extract ;
 				  sosa:isSampleOf ?organe .
@@ -46,13 +46,12 @@ ex:018 a sh:SPARQLExecutable,
                           emi:hasTarget ?yOrg ;
                           emi:isClassifiedWith ?intxnName .
                    ?xOrg emi:inTaxon ?sourceWD ;				#retrieve wikidata-id of the interaction-source
-			 sosa:isSampleOf ?sourceName .				#retrieve its scientific name as listed in GloBI
+			 rdfs:label ?sourceName ;
+			 sosa:isSampleOf ?sourceSample .				#retrieve its scientific name as listed in GloBI
 		   ?yOrg emi:inTaxon ?targetWD ;				#retrieve wikidata-id of the interaction-target
-			 sosa:isSampleOf ?targetName .				#retrieve its scientific names as listed in GloBI
-		   BIND(REPLACE(STR(?sourceName), "%20", " ") AS ?sourceNameX)  #remove percent encodings from source and target names
-		   BIND(IRI(?sourceNameX) AS ?sourceNameURI)
-		   BIND(REPLACE(STR(?targetName), "%20", " ") AS ?targetNameX)
-		   BIND(IRI(?targetNameX) AS ?targetNameURI)   
+			 rdfs:label ?targetName ;
+			 sosa:isSampleOf ?targetSample .				#retrieve its scientific names as listed in GloBI
                 } LIMIT 1000
 """ ;
-    schema:target <https://purl.org/emi> .
+    schema:target <https://biosoda.unil.ch/emi/sparql/> ;
+    spex:federatesWith <https://qlever.cs.uni-freiburg.de/api/wikidata> .
