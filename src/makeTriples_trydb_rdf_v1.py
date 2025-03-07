@@ -117,6 +117,7 @@ def generate_rdf_in_batches(input_csv_gz, wdMapping_csv, join_csv, output_file, 
 
             # Add triples to the graph
             graph.add((sample_uri, RDF.type, sosa.Sample))
+            graph.add((sample_uri, RDFS.label, Literal(row['AccSpeciesName'], datatype=XSD.string)))
             graph.add((sample_uri, sosa.isSampleOf, organism_uri))
             graph.add((sample_uri, sosa.isFeatureOfInterestOf, observation_uri))
 
