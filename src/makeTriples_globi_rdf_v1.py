@@ -160,13 +160,13 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
 #        # Initialize a new graph for this batch
         graph = Graph()
         graph.bind("", emiBox)  # ":" will now map to "https://purl.org/emi/abox#"
-        graph.bind("emi", emi)  # Bind the 'emi' prefix explicitly
-        graph.bind("sosa", sosa)  # Bind the 'emi' prefix explicitly
-        graph.bind("dcterms", dcterms)  # Bind the 'emi' prefix explicitly
-        graph.bind("wd", wd)  # Bind the 'emi' prefix explicitly
-        graph.bind("prov", prov)  # Bind the 'emi' prefix explicitly
-        graph.bind("wgs84", wgs84)  # Bind the 'emi' prefix explicitly
-        graph.bind("qudt", qudt)  # Bind the 'emi' prefix explicitly
+        graph.bind("emi", emi)  
+        graph.bind("sosa", sosa)
+        graph.bind("dcterms", dcterms)  
+        graph.bind("wd", wd)  
+        graph.bind("prov", prov)  
+        graph.bind("wgs84", wgs84)  
+        graph.bind("qudt", qudt)  
 #        graph.namespace_manager.bind("_", nTemp)
 
         # Process each row in the batch
@@ -220,6 +220,7 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
                 #    print(i)
                 #    print(row)
                 graph.add((source_taxon_uri, RDF.type, sosa.Sample))
+                graph.add((source_taxon_uri, RDFS.label, Literal(row['sourceTaxonName'], datatype=XSD.string)))
                 graph.add((source_taxon_uri, sosa.isSampleOf, sourceSample_uri))
             if dp.is_none_na_or_empty(row['source_WD']) and dp.is_none_na_or_empty(source_taxon_uri):
                 graph.add((source_taxon_uri, emi.inTaxon, wd[f"{row['source_WD']}"]))
@@ -227,6 +228,7 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, output_file, join_column, ba
             if dp.is_none_na_or_empty(row['targetTaxonName']) and dp.is_none_na_or_empty(target_taxon_uri):
                 targetSample_uri = emiBox[f"ORGANISM-{dp.format_uri(row['targetTaxonName'])}"]
                 graph.add((target_taxon_uri, RDF.type, sosa.Sample))
+                graph.add((target_taxon_uri, RDFS.label, Literal(row['targetTaxonName'], datatype=XSD.string)))
                 graph.add((target_taxon_uri, sosa.isSampleOf, targetSample_uri))
             if dp.is_none_na_or_empty(row['target_WD']) and dp.is_none_na_or_empty(target_taxon_uri):
                 graph.add((target_taxon_uri, emi.inTaxon, wd[f"{row['target_WD']}"]))
