@@ -106,5 +106,5 @@ def map_terms_to_values(term):
         #print(termX, "\t", countX)
     # Use dictionary comprehension to filter out pairs with value 0
     filtered_dict = {k: v for k, v in mapping_count.items() if v != 0}
-    print(filtered_dict)
+    #print(filtered_dict)
     return filtered_dict
