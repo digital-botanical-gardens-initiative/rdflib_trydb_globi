@@ -74,7 +74,7 @@ prefix_to_namespace = {
     
 
 # Function for adding ambiguous entities to the graph
-def add_entity_to_graph(fileName,keyCol,valCol1,valCol2,entity,entityID,subject,predicate,rdftype,ns,graph):
+def add_entity_to_graph(fileName, keyCol, valCol1, valCol2, entity, entityID, subject, predicate, rdftype, ns, graph, desigSet):
     eNamesDict = dp.create_dict_from_csv(fileName, keyCol, valCol1)
     eURIDict = dp.create_dict_from_csv(fileName, keyCol, valCol2)
     if dp.is_none_na_or_empty(entityID):
@@ -84,22 +84,32 @@ def add_entity_to_graph(fileName,keyCol,valCol1,valCol2,entity,entityID,subject,
                     entity_Id = entityID[len(prefix):]
                     entityURI = namespace[entity_Id]
                     graph.add((subject,predicate,entityURI))
-                    graph.add((entityURI, RDF.type, rdftype))
-                    graph.add((entityURI, RDFS.label, Literal(entity, datatype=XSD.string)))
+                    if entityURI not in desigSet:
+                        graph.add((entityURI, RDF.type, rdftype))
+                        graph.add((entityURI, RDFS.label, Literal(entity, datatype=XSD.string)))
+                        desigSet.add(entityURI)
                     break
         elif entityID.startswith("http"):
-            graph.add((subject,predicate,URIRef(entityID)))
-            graph.add((URIRef(entityID), RDF.type, rdftype))
-            graph.add((URIRef(entityID), RDFS.label, Literal(entity, datatype=XSD.string)))
+            ent=URIRef(entityID)
+            graph.add((subject,predicate,ent))
+            if ent not in desigSet:
+                graph.add((ent, RDF.type, rdftype))
+                graph.add((ent, RDFS.label, Literal(entity, datatype=XSD.string)))
+                desigSet.add(ent)
     elif entity in eNamesDict:
         modEntityURI = URIRef(eURIDict[entity])  # Use standardized URI
         modEntityName = eNamesDict[entity]  # Use standardized URI
         graph.add((subject,predicate,modEntityURI))
-        graph.add((modEntityURI, RDF.type, rdftype))
-        graph.add((modEntityURI, RDFS.label, Literal(modEntityName, datatype=XSD.string)))
+        if modEntityURI not in desigSet:
+            graph.add((modEntityURI, RDF.type, rdftype))
+            graph.add((modEntityURI, RDFS.label, Literal(modEntityName, datatype=XSD.string)))
+            desigSet.add(modEntityURI)
     else:
         graph.add((subject,predicate,emiBox[f"{ns}-{dp.format_uri(entity)}"])) #fallback URI
-        graph.add((emiBox[f"{ns}-{dp.format_uri(entity)}"], RDF.type, rdftype))
+        ent=emiBox[f"{ns}-{dp.format_uri(entity)}"]
+        if ent not in desigSet:
+            graph.add((ent, RDF.type, rdftype))
+            desigSet.add(ent)
    
 
 # Function to generate full set of triples
@@ -138,11 +148,11 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, wd_map_file, output_file, jo
     wd_map_set_id = set(wd_map_df["TaxonId"].dropna().replace("", None).dropna())
     wd_map_set_name = set(wd_map_df["TaxonName"].dropna().replace("", None).dropna())
 
-    #wd_map_dict_id = wd_map_df.set_index("TaxonId")[["Mapped_ID_WD", "Mapped_Value"]].apply(lambda x: tuple(x), axis=1).to_dict()
-    #wd_map_dict_name = wd_map_df.set_index("TaxonName")[["Mapped_ID_WD", "Mapped_Value"]].apply(lambda x: tuple(x), axis=1).to_dict()
-    #wd_map_set_id = set(wd_map_df["TaxonId"])
-    #wd_map_set_name = set(wd_map_df["TaxonName"])
-
+    # declare sets to check later if some generic types like interaction, biological sex, developmental stage, etc already got serialized in one of the previous batches
+    intxnTypeSet = set()
+    biologicalSexSet = set()
+    lifeStageSet = set()
+    bodyPartSet = set()
 
     '''if(ch == 1): 
         data2 = pd.read_csv(join_csv, compression="gzip", sep="\t", dtype=str) # for now, no filtering based on the ENPKG data
@@ -177,20 +187,7 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, wd_map_file, output_file, jo
         out_file.write("@prefix qudt: <http://qudt.org/schema/qudt/> .\n\n")
 
     # process in batches
-    '''for start_row in range(0, len(merged_data), batch_size): # old way after filtering for kingdom
-        end_row = min(start_row + batch_size, len(merged_data))
-        batch_data = merged_data[start_row:end_row]
-        #print(batch_data.shape)
-        #print(start_row)'''
-    # new way to process in batches
-    i=0
-    '''with gzip.open(input_csv_gz, "rt", encoding="utf-8") as file:
-        headers = file.readline().strip()
-        while True:
-            batch_data = [file.readline().strip() for _ in range(batch_size)]
-            batch_data = [line for line in batch_data if line]  
-            if not batch_data:
-                break  #no more lines to read'''
+    i = 0 # keep for sanity checks later
     # read gzipped TSV file in chunks
     chunks = pd.read_csv(input_csv_gz, sep="\t", compression="gzip", chunksize=batch_size, dtype=str, encoding="utf-8")
     for batch_data in chunks:
@@ -265,11 +262,15 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, wd_map_file, output_file, jo
 	
                 if dp.is_none_na_or_empty(intxn_type_uri) and dp.is_none_na_or_empty(intxn_type_Id_uri):
                     graph.add((intxnRec_uri, emi.isClassifiedWith, intxn_type_Id_uri))
-                    graph.add((intxn_type_Id_uri, RDF.type, emi.InteractionType))
-                    graph.add((intxn_type_Id_uri, RDFS.label, Literal(row['interactionTypeName'], datatype=XSD.string)))
+                    if intxn_type_Id_uri not in intxnTypeSet:
+                        graph.add((intxn_type_Id_uri, RDF.type, emi.InteractionType))
+                        graph.add((intxn_type_Id_uri, RDFS.label, Literal(row['interactionTypeName'], datatype=XSD.string)))
+                        intxnTypeSet.add(intxn_type_Id_uri)
                 if not dp.is_none_na_or_empty(intxn_type_Id_uri):
                     graph.add((intxnRec_uri, emi.isClassifiedWith, intxn_type_uri))
-                    graph.add((intxn_type_uri, RDF.type, emi.InteractionType))
+                    if intxn_type_uri not in intxnTypeSet:
+                        graph.add((intxn_type_uri, RDF.type, emi.InteractionType))
+                        intxnTypeSet.add(intxn_type_uri)
 	                #if dp.is_none_na_or_empty(intxn_type_uri):
 	                #     graph.add((intxn_type_uri, dcterms.identifier,intxn_type_Id_uri))
 	
@@ -306,15 +307,15 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, wd_map_file, output_file, jo
 	            # first read the file in which the mappings are stored, followed by triples generation
 	            # for body part names
                 if (dp.is_none_na_or_empty(row['sourceBodyPartName']) or dp.is_none_na_or_empty(row['sourceBodyPartId'])) and dp.is_none_na_or_empty(source_taxon_uri):
-                    add_entity_to_graph("../ontology/data/globi/correctedBodyPartNamesGlobi.csv","InputTerm","BestMatch","URI",row['sourceBodyPartName'],row['sourceBodyPartId'],source_taxon_uri,emi.hasAnatomicalEntity,emi.AnatomicalEntity, "ANATOMICAL_ENTITY", graph)
+                    add_entity_to_graph("../ontology/data/globi/correctedBodyPartNamesGlobi.csv","InputTerm","BestMatch","URI",row['sourceBodyPartName'],row['sourceBodyPartId'],source_taxon_uri,emi.hasAnatomicalEntity,emi.AnatomicalEntity, "ANATOMICAL_ENTITY", graph, bodyPartSet)
                 if (dp.is_none_na_or_empty(row['targetBodyPartName']) or dp.is_none_na_or_empty(row['targetBodyPartId'])) and dp.is_none_na_or_empty(target_taxon_uri):
-                    add_entity_to_graph("../ontology/data/globi/correctedBodyPartNamesGlobi.csv","InputTerm","BestMatch","URI",row['targetBodyPartName'],row['targetBodyPartId'],target_taxon_uri,emi.hasAnatomicalEntity,emi.AnatomicalEntity, "ANATOMICAL_ENTITY", graph)
+                    add_entity_to_graph("../ontology/data/globi/correctedBodyPartNamesGlobi.csv","InputTerm","BestMatch","URI",row['targetBodyPartName'],row['targetBodyPartId'],target_taxon_uri,emi.hasAnatomicalEntity,emi.AnatomicalEntity, "ANATOMICAL_ENTITY", graph, bodyPartSet)
 	            
 	            # for life stage names
                 if (dp.is_none_na_or_empty(row['sourceLifeStageName']) or dp.is_none_na_or_empty(row['sourceLifeStageId'])) and dp.is_none_na_or_empty(source_taxon_uri):
-                    add_entity_to_graph("../ontology/data/globi/correctedLifeStageNamesGlobi.csv","InputTerm","BestMatch","URI",row['sourceLifeStageName'],row['sourceLifeStageId'],source_taxon_uri,emi.hasDevelopmentalStage, emi.DevelopmentalStage, "DEVELOPMENTAL_STAGE", graph)
+                    add_entity_to_graph("../ontology/data/globi/correctedLifeStageNamesGlobi.csv","InputTerm","BestMatch","URI",row['sourceLifeStageName'],row['sourceLifeStageId'],source_taxon_uri,emi.hasDevelopmentalStage, emi.DevelopmentalStage, "DEVELOPMENTAL_STAGE", graph, lifeStageSet)
                 if (dp.is_none_na_or_empty(row['targetLifeStageName']) or dp.is_none_na_or_empty(row['targetLifeStageId'])) and dp.is_none_na_or_empty(target_taxon_uri):
-                    add_entity_to_graph("../ontology/data/globi/correctedLifeStageNamesGlobi.csv","InputTerm","BestMatch","URI",row['targetLifeStageName'],row['targetLifeStageId'],target_taxon_uri,emi.hasDevelopmentalStage, emi.DevelopmentalStage, "DEVELOPMENTAL_STAGE", graph)
+                    add_entity_to_graph("../ontology/data/globi/correctedLifeStageNamesGlobi.csv","InputTerm","BestMatch","URI",row['targetLifeStageName'],row['targetLifeStageId'],target_taxon_uri,emi.hasDevelopmentalStage, emi.DevelopmentalStage, "DEVELOPMENTAL_STAGE", graph, lifeStageSet)
 	
 	            #for biological sex
                 if dp.is_none_na_or_empty(row['sourceSexName']) and dp.is_none_na_or_empty(source_taxon_uri):
@@ -323,8 +324,11 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, wd_map_file, output_file, jo
                         gData = BNode()
                         graph.add((source_taxon_uri, emi.hasSex, gData))
                         graph.add((gData, qudt.quantityKind, URIRef(uri)))  
-                        graph.add((gData, qudt.numericValue, Literal(qty, datatype=XSD.integer)))   
-                        graph.add((URIRef(uri), RDF.type, emi.BiologicalSex))  
+                        graph.add((gData, qudt.numericValue, Literal(qty, datatype=XSD.integer)))
+                        ent = URIRef(uri)
+                        if ent not in biologicalSexSet:
+                            graph.add((ent, RDF.type, emi.BiologicalSex))
+                            biologicalSexSet.add(ent)
 	
                 if dp.is_none_na_or_empty(row['targetSexName']) and dp.is_none_na_or_empty(target_taxon_uri):
                     genderDict = mbg.map_terms_to_values(row['targetSexName'])
@@ -333,7 +337,10 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, wd_map_file, output_file, jo
                         graph.add((source_taxon_uri, emi.hasSex, gData))
                         graph.add((gData, qudt.quantityKind, URIRef(uri)))
                         graph.add((gData, qudt.numericValue, Literal(qty, datatype=XSD.integer)))
-                        graph.add((URIRef(uri), RDF.type, emi.BiologicalSex))  
+                        ent = URIRef(uri)
+                        if ent not in biologicalSexSet:
+                            graph.add((ent, RDF.type, emi.BiologicalSex))  
+                            biologicalSexSet.add(ent)
 	            
                 i = i + 1
         dp.add_inverse_relationships(graph)
@@ -373,4 +380,4 @@ if __name__ == "__main__":
         csv_file3 = args.joinFile
         output_file = args.outputFile
 
-    generate_rdf_in_batches(csv_file1, csv_file3, csv_file2, output_file, join_column="wd_taxon_id", batch_size=10000)
+    generate_rdf_in_batches(csv_file1, csv_file3, csv_file2, output_file, join_column="wd_taxon_id", batch_size=100000)
