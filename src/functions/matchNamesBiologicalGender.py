@@ -13,7 +13,7 @@ def preprocess_term(term):
 # Functions for mapping biological gender - Match the biological gender values
 def map_terms_to_values(term):
     # File paths
-    dataFile = "/home/drishti/Documents/Projects/DBGI/gitReposMine/rdflib_trydb_globi/ontology/data/globi/correctedBiologicalSexNames.tsv"
+    dataFile = "../../ontology/data/globi/correctedBiologicalSexNames.tsv"
     # Load data
     mapDf = pd.read_csv(dataFile, sep="\t", quoting=3, dtype=str)
 
