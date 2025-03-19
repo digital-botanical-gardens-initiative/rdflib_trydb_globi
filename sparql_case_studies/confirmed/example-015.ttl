@@ -31,7 +31,7 @@ ex:015 a sh:SPARQLExecutable,
 					sosa:isSampleOf ?targetSample ;
 					rdfs:label ?targetName .
 				?source emi:inTaxon ?sourceWD ;					#retrieve wikidata-id for source parasite
-					sosa:isSampleOf ?sourceSample .
+					sosa:isSampleOf ?sourceSample ;
 					rdfs:label ?sourceName .
 				?intxnName rdfs:label ?intxnLabel
                             	VALUES ?sourceWD { wd:Q7102162 }				#retain results only if the source-WD matches the wikidata-id of Orgyia postica

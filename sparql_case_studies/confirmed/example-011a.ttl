@@ -16,7 +16,7 @@ ex:011a a sh:SPARQLExecutable,
                 PREFIX wdt: <http://www.wikidata.org/prop/direct/>
                 PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>
                 SELECT DISTINCT ?wdx_Source ?sourceName ?intxnLabel ?intxnType ?wdx_Target ?targetName WHERE {
-			{ SELECT DISTINCT ?wdx_Target ?targetName ?sourceName ?wdx_Source ?intxnType WHERE { #first select the source-target interaction-pairs
+			{ SELECT DISTINCT ?wdx_Target ?targetName ?sourceName ?wdx_Source ?intxnType ?intxnLabel WHERE { #first select the source-target interaction-pairs
                 		?intxn emi:hasSource ?source ;
 					emi:hasTarget ?target ;
 					emi:isClassifiedWith ?intxnType . 	#unidirectional interaction, e.g.: source-X hosts target target-Y

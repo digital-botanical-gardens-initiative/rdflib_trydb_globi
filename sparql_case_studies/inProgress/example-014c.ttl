@@ -22,7 +22,7 @@ ex:011 a sh:SPARQLExecutable,
 		PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 		PREFIX prov: <http://www.w3.org/ns/prov#>
 		PREFIX wgs: <http://www.w3.org/2003/01/geo/wgs84_pos#>
-		SELECT DISTINCT ?wdx ?sourceNameURI ?loc ?lats ?longs ?npcClass ?npcSuperClass
+		SELECT DISTINCT ?wdx ?sourceName ?loc ?lats ?longs ?npcClass ?npcSuperClass
 		WHERE
 		    {
 		     { SELECT DISTINCT ?wdx ?npcClass ?npcSuperClass WHERE {
@@ -50,14 +50,13 @@ ex:011 a sh:SPARQLExecutable,
 		} }
 		    
 		        ?source emi:inTaxon ?wdx ;
-				    sosa:isSampleOf ?sourceName .
+				    rdfs:label ?sourceName .
 			    ?intxn emi:hasSource ?source ;
-			     emi:hasTarget ?target
+
 				prov:atLocation ?loc ;
 				wgs:lat ?lats ; wgs:long ?longs .
-				?target	sosa:isSampleOf ?targetName .
-		BIND(REPLACE(STR(?sourceName), "%20", " ") AS ?sourceNameX)
-		BIND(IRI(?sourceNameX) AS ?sourceNameURI)
+
+		
 		
 	}
 """ ;
