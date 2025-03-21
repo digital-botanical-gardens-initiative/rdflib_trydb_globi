@@ -10,6 +10,65 @@ def preprocess_term(term):
             term = term[:-1]  # Remove trailing 's' to handle plurals
     return term
 
+def countTerms(term,mapping_dict):
+    records = []
+    conjunction_patterns1 = re.compile(r'\b(and|y)\b', re.IGNORECASE)
+    conjunction_patterns2 = re.compile(r'\b(or)\b', re.IGNORECASE)
+    pre_post_fix = re.compile(r"(adult[as]?|tortere|juvenil[e]?|maybe|\(?torete[s]?\)?)", re.IGNORECASE)
+    delimiters_regex = re.compile(r"[,;/|&]+", re.IGNORECASE)                          # Removed '-'
+    delimiters_regex1 = re.compile(r"[\[\]\(\)\?\#:`]+", re.IGNORECASE)                # Removed '-'
+    delimiters_regex2 = re.compile(r"[+.,]+", re.IGNORECASE)
+    delimiters_regex3 = re.compile(r"\s\s", re.IGNORECASE)
+    pattern = r"(\d+)\s*([\w-]+)|([\w-]+)\s*(\d+)"
+    counts_template = {value: 0 for value in mapping_dict.values()}
+    mapping_count = counts_template.copy()
+    term = term.lower().strip()  # Convert to lowercase and remove extra spaces
+    term=conjunction_patterns1.sub(',', term)  # Replace "and/or/y" with a comma
+    term=conjunction_patterns2.sub('', term)  # Replace "and/or/y" with a comma
+    term=delimiters_regex.sub(',', term)  # Replace "and/or/y" with a comma
+    term=delimiters_regex1.sub(' ', term)  # Replace "and/or/y" with a comma
+    term=delimiters_regex3.sub(' ', term)  # Replace "and/or/y" with a comma
+    if term not in mapping_dict:
+        #cleaned_row = re.sub(r"[+.,]", " ", term)
+        terms = delimiters_regex2.split(term)
+        for term in terms:
+            cleaned_row = re.sub(r"[+.,]", " ", term)
+            matches = re.findall(pattern, cleaned_row)
+            if matches:
+                for match in matches:
+                    number1, term1, term2, number2 = match
+                    term = term1 if term1 else term2  # Choose the non-empty term
+                    term = preprocess_term(term.strip())  # Normalize to lowercase
+                    if term in mapping_dict:
+                        termX = mapping_dict[term]
+                    else:
+                        term = preprocess_term(pre_post_fix.sub('', term))  # Replace "and/or/y" with a comma
+                        if term in mapping_dict:
+                            termX = mapping_dict[term]
+                        else:                                               # Unmapped 
+                            termX = "unknown"
+                    print("\t".join([term,termX]))
+                    records.append({"Term": term, "TermID": termX})
+            else:
+                terms = delimiters_regex2.split(term)
+                for term in terms:
+                    term = preprocess_term(term.strip())  # Normalize to lowercase
+                    if term in mapping_dict:
+                        termX = mapping_dict[term]
+                    else:
+                        term = preprocess_term(pre_post_fix.sub('', term))  # Replace "and/or/y" with a comma
+                        if term in mapping_dict:
+                            termX = mapping_dict[term]
+                        else:                                               # Unmapped
+                            termX = "unknown"
+                    print("\t".join([term,termX]))
+                    records.append({"Term": term, "TermID": termX})
+    else:
+        termX = mapping_dict[term]
+        print("\t".join([term,termX]))
+        records.append({"Term": term, "TermID": termX})
+    return pd.DataFrame(records)
+
 # Functions for mapping biological gender - Match the biological gender values
 def map_terms_to_values(term):
     # File paths
