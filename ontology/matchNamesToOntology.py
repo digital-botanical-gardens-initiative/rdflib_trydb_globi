@@ -101,6 +101,8 @@ if __name__ == "__main__":
         "PO" :  "http://purl.obolibrary.org/obo/po.owl",  # PO ontology path
         "ENVO" :    "http://purl.obolibrary.org/obo/envo.owl",  # ENVO ontology path
         "PATO" :    "http://purl.obolibrary.org/obo/pato.owl",  # PATO ontology path
+        "FAO" :    "http://purl.obolibrary.org/obo/fao.owl",  # FAO ontology path
+        "BTO" :    "http://purl.obolibrary.org/obo/bto.owl"  # BTO ontology path
         }
     process_terms(input_file, output_file, ontology_paths)
 
