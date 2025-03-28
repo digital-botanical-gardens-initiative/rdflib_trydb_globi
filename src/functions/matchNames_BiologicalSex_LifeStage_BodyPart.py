@@ -1,27 +1,69 @@
 import pandas as pd
 import re
+import sys
+import os
+from rdflib import URIRef, Literal, Namespace, RDF, RDFS, XSD, DCTERMS, Graph, BNode
+from config import eURIDict, eURISet, eNamesDict, eNamesSet
+import data_processing as dp
 
 
+#sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))  # to add parent directory
 
-def listTerms(term,eURIDict,eURISet,eNameDict,eNameSet,ns):
-    records = []
+#from makeTriples_globi_rdf_v1 import eURIDict, eURISet, eNamesDict, eNamesSet  # Import global variables
+
+def add_entity(graph, subject, predicate, rdftype, entity, entity_name, desigSet, fetchtype, termOr):
+    print(termOr, entity, fetchtype, sep="\t")
+    graph.add((subject, predicate, entity))
+    if entity not in desigSet:
+        graph.add((entity, RDF.type, rdftype))
+        graph.add((entity, RDFS.label, Literal(entity_name, datatype=XSD.string)))
+        desigSet.add(entity)
+
+def lookup_term(termOr, graph, subject, predicate, rdftype, ns, term, pre_post_fix, desigSet):
+    emiBox = Namespace("https://purl.org/emi/abox#")
+    term = preprocess_term(term)
+    if term in eURISet:
+        modEntityURI = URIRef(eURIDict[term])
+        modEntityName = eNamesDict[term]
+#        print(term, ns, modEntityURI, "URI-FETCHED-1", sep="\t")
+        add_entity(graph, subject, predicate, rdftype, modEntityURI, modEntityName, desigSet, "URI-FETCHED-1", termOr)
+    elif term in eNamesSet:
+        modEntityName = eNamesDict[term]
+        ent = emiBox[f"{ns}-{dp.format_uri(modEntityName)}"]
+#        print(term, ns, modEntityName, "URI-FETCHED-1a", sep="\t")
+        add_entity(graph, subject, predicate, rdftype, ent, modEntityName, desigSet, "URI-FETCHED-1a", termOr)
+    else:
+        term = preprocess_term(pre_post_fix.sub('', term))
+        if term in eURISet:
+            modEntityURI = URIRef(eURIDict[term])
+            modEntityName = eNamesDict[term]
+#            print(term, ns, modEntityURI, "URI-FETCHED-1", sep="\t")
+            add_entity(graph, subject, predicate, rdftype, modEntityURI, modEntityName, desigSet, "URI-FETCHED-1", termOr)
+        elif term in eNamesSet:
+            modEntityName = eNamesDict[term]
+            ent = emiBox[f"{ns}-{dp.format_uri(modEntityName)}"]
+#            print(term, ns, modEntityName, "URI-FETCHED-1a", sep="\t")
+            add_entity(graph, subject, predicate, ent, modEntityName, rdftype, desigSet, "URI-FETCHED-1a", termOr)
+        else:
+            print(termOr, ns, term, "NOTHING-AVAILABLE", sep="\t")
+
+
+def listTerms(term, graph, subject, predicate, rdftype, ns, desigSet):
+    termOr = term
     conjunction_patterns1 = re.compile(r'\b(and|y)\b', re.IGNORECASE)
     conjunction_patterns2 = re.compile(r'\b(or)\b', re.IGNORECASE)
     pre_post_fix = re.compile(r"(adult[as]?|tortere|juvenil[e]?|maybe|\(?torete[s]?\)?)", re.IGNORECASE)
-    delimiters_regex = re.compile(r"[,;/|&]+", re.IGNORECASE)                          # Removed '-'
-    delimiters_regex1 = re.compile(r"[\[\]\(\)\?\#:`]+", re.IGNORECASE)                # Removed '-'
+    delimiters_regex = re.compile(r"[,;/|&]+", re.IGNORECASE)
+    delimiters_regex1 = re.compile(r"[\[\]\(\)\?\#:`]+", re.IGNORECASE)
     delimiters_regex2 = re.compile(r"[+.,]+", re.IGNORECASE)
     delimiters_regex3 = re.compile(r"\s\s", re.IGNORECASE)
     pattern = r"(\d+)\s*([\w-]+)|([\w-]+)\s*(\d+)"
-    termOr = term
-    term = term.lower().strip()  # Convert to lowercase and remove extra spaces
-    term=conjunction_patterns1.sub(',', term)  # Replace "and/or/y" with a comma
-    term=conjunction_patterns2.sub('', term)  # Replace "and/or/y" with a comma
-    term=delimiters_regex.sub(',', term)  # Replace "and/or/y" with a comma
-    term=delimiters_regex1.sub(' ', term)  # Replace "and/or/y" with a comma
-    term=delimiters_regex3.sub(' ', term)  # Replace "and/or/y" with a comma
-    #if term not in mapping_dict:
-    #cleaned_row = re.sub(r"[+.,]", " ", term)
+    term = term.lower().strip()
+    term = conjunction_patterns1.sub(',', term)
+    term = conjunction_patterns2.sub('', term)
+    term = delimiters_regex.sub(',', term)
+    term = delimiters_regex1.sub(' ', term)
+    term = delimiters_regex3.sub(' ', term)
     terms = delimiters_regex2.split(term)
     for term in terms:
         cleaned_row = re.sub(r"[+.,]", " ", term)
@@ -29,48 +71,11 @@ def listTerms(term,eURIDict,eURISet,eNameDict,eNameSet,ns):
         if matches:
             for match in matches:
                 number1, term1, term2, number2 = match
-                term = term1 if term1 else term2  # Choose the non-empty term
-                term = preprocess_term(term.strip())  # Normalize to lowercase
-                if term in eURISet:
-                    termX = eURIDict[term]
-                    print(termOr,ns,termX,"URI-FETCHED-2",sep="\t")
-                elif term in eNameSet:
-                    termX = eNameDict[term]
-                    print(termOr,ns,termX,"URI-NOT-AVAILABLE-1",sep="\t")
-                else:
-                    term = preprocess_term(pre_post_fix.sub('', term))  # Replace "and/or/y" with a comma
-                    if term in eURISet:
-                        termX = eURIDict[term]
-                        print(termOr,ns,termX,"URI-FETCHED-3",sep="\t")
-                    elif term in eNameSet:
-                        termX = eNameDict[term]
-                        print(termOr,ns,termX,"URI-NOT-AVAILABLE-2",sep="\t")
-                    else:                                               # Unmapped 
-                        termX = term
-                        print(termOr,ns,termX,"NOTHING-AVAILABLE",sep="\t")
+                term = term1 if term1 else term2
+                lookup_term(termOr, graph, subject, predicate, rdftype, ns, term.strip(), pre_post_fix, desigSet)
         else:
-            terms = delimiters_regex2.split(term)
-            for term in terms:
-                term = preprocess_term(term.strip())  # Normalize to lowercase
-                if term in eURISet:
-                    termX = eURIDict[term]
-                    print(termOr,ns,termX,"URI-FETCHED-4",sep="\t")
-                elif term in eNameSet:
-                    termX = eNameDict[term]
-                    print(termOr,ns,termX,"URI-NOT-AVAILABLE-3",sep="\t")
-                else:
-                    term = preprocess_term(pre_post_fix.sub('', term))  # Replace "and/or/y" with a comma
-                    if term in eURISet:
-                        termX = eURIDict[term]
-                        print(termOr,ns,termX,"URI-FETCHED-5",sep="\t")
-                    elif term in eNameSet:
-                        termX = eNameDict[term]
-                        print(termOr,ns,termX,"URI-NOT-AVAILABLE-4",sep="\t")
-                    else:                                               # Unmapped 
-                        termX = term
-                        print(termOr,ns,termX,"NOTHING-AVAILABLE",sep="\t")
-    #return pd.DataFrame(records)
-
+            for term in delimiters_regex2.split(term):
+                lookup_term(termOr, graph, subject, predicate, rdftype, ns, term.strip(), pre_post_fix, desigSet)
 
 
 def countTerms(term,mapping_dict,mapping_set):

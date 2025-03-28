@@ -20,6 +20,7 @@ import os
 sys.path.append('./functions')  # Add the 'src' directory to the sys.path
 import data_processing as dp
 import matchNames_BiologicalSex_LifeStage_BodyPart as mbg
+from config import eURIDict, eURISet, eNamesDict, eNamesSet
 
 rdflib.plugin.register('turtle_custom', rdflib.plugin.Serializer, 'turtle_custom.serializer', 'TurtleSerializerCustom')
 
@@ -69,52 +70,37 @@ prefix_to_namespace = {
     "FAO:" : fao,
     "NCIT:" : ncit,
     "OMIT:" : omit,
-    "SNOMED:" : snomed,
     "UBERON:" : uberon,
     "PO:" : po,
     "QUDT:" : qudt
 }
 
-    
+
 
 # Function for adding ambiguous entities to the graph
-def add_entity_to_graph(fileName, keyCol, valCol1, valCol2, entity, entityID, subject, predicate, rdftype, ns, graph, desigSet):
-    eNamesDict = dp.create_dict_from_csv(fileName, keyCol, valCol1)
-    eURIDict = dp.create_dict_from_csv(fileName, keyCol, valCol2)
-    if dp.is_none_na_or_empty(entityID):
-        if any(entityID.startswith(prefix) for prefix in prefix_to_namespace): #handle prefixed identifiers like 'UBERON:'
+def add_entity_to_graph(entity, entityID, subject, predicate, rdftype, ns, graph, desigSet):
+    if dp.is_none_na_or_empty(entityID): #check if entity id is not na
+        if any(entityID.startswith(prefix) for prefix in prefix_to_namespace): #check if the ids is already present
             for prefix, namespace in prefix_to_namespace.items():
                 if entityID.startswith(prefix):
                     entity_Id = entityID[len(prefix):]
                     entityURI = namespace[entity_Id]
-                    graph.add((subject,predicate,entityURI))
-                    if entityURI not in desigSet:
-                        graph.add((entityURI, RDF.type, rdftype))
-                        graph.add((entityURI, RDFS.label, Literal(entity, datatype=XSD.string)))
-                        desigSet.add(entityURI)
+                    mbg.add_entity(graph, subject, predicate, rdftype, entityURI, entity, desigSet, "EXISTING-1", entity)
                     break
-        elif entityID.startswith("http"):
-            ent=URIRef(entityID)
-            graph.add((subject,predicate,ent))
-            if ent not in desigSet:
-                graph.add((ent, RDF.type, rdftype))
-                graph.add((ent, RDFS.label, Literal(entity, datatype=XSD.string)))
-                desigSet.add(ent)
-    elif entity in eNamesDict:
-        modEntityURI = URIRef(eURIDict[entity])  # Use standardized URI
-        modEntityName = eNamesDict[entity]  # Use standardized URI
-        graph.add((subject,predicate,modEntityURI))
-        if modEntityURI not in desigSet:
-            graph.add((modEntityURI, RDF.type, rdftype))
-            graph.add((modEntityURI, RDFS.label, Literal(modEntityName, datatype=XSD.string)))
-            desigSet.add(modEntityURI)
-    else:
-        graph.add((subject,predicate,emiBox[f"{ns}-{dp.format_uri(entity)}"])) #fallback URI
-        ent=emiBox[f"{ns}-{dp.format_uri(entity)}"]
-        if ent not in desigSet:
-            graph.add((ent, RDF.type, rdftype))
-            desigSet.add(ent)
-   
+        elif entityID.startswith("http"): # check if the entity starts with http
+            ent = URIRef(entityID)
+            mbg.add_entity(graph, subject, predicate, rdftype, ent, entity, desigSet, "EXISTING-2", entity)
+    elif entity in eURISet: # check if the id is assigned in the dictionary file
+        modEntityURI = URIRef(eURIDict[entity])
+        modEntityName = eNamesDict[entity]
+        mbg.add_entity(graph, subject, predicate, rdftype, modEntityURI, modEntityName, desigSet, "URI-FETCHED-1", entity)
+    elif entity in eNamesSet: # check if the name is assigned in the dictionary file
+        modEntityName = eNamesDict[entity]
+        ent = emiBox[f"{ns}-{dp.format_uri(entity)}"]
+        mbg.add_entity(graph, subject, predicate, rdftype, ent, modEntityName, desigSet, "URI-FETCHED-1a", entity)
+    else: # none available
+        mbg.listTerms(entity, graph, subject, predicate, rdftype, ns, desigSet)
+
 
 # Function to generate full set of triples
 def generate_rdf_in_batches(input_csv_gz, join_csv, wd_map_file, output_file, join_column, batch_size=1000, ch=2): ###DT
@@ -310,16 +296,16 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, wd_map_file, output_file, jo
 	            # write body part, physiological state, and other taxon attributes (if available)
 	            # first read the file in which the mappings are stored, followed by triples generation
 	            # for body part names
-#                if (dp.is_none_na_or_empty(row['sourceBodyPartName']) or dp.is_none_na_or_empty(row['sourceBodyPartId'])) and dp.is_none_na_or_empty(source_taxon_uri):
-#                    add_entity_to_graph("../ontology/data/globi/correctedBodyPartNamesGlobi.csv","InputTerm","BestMatch","URI",row['sourceBodyPartName'],row['sourceBodyPartId'],source_taxon_uri,emi.hasAnatomicalEntity,emi.AnatomicalEntity, "ANATOMICAL_ENTITY", graph, bodyPartSet)
-#                if (dp.is_none_na_or_empty(row['targetBodyPartName']) or dp.is_none_na_or_empty(row['targetBodyPartId'])) and dp.is_none_na_or_empty(target_taxon_uri):
-#                    add_entity_to_graph("../ontology/data/globi/correctedBodyPartNamesGlobi.csv","InputTerm","BestMatch","URI",row['targetBodyPartName'],row['targetBodyPartId'],target_taxon_uri,emi.hasAnatomicalEntity,emi.AnatomicalEntity, "ANATOMICAL_ENTITY", graph, bodyPartSet)
-#	            
-#	            # for life stage names
-#                if (dp.is_none_na_or_empty(row['sourceLifeStageName']) or dp.is_none_na_or_empty(row['sourceLifeStageId'])) and dp.is_none_na_or_empty(source_taxon_uri):
-#                    add_entity_to_graph("../ontology/data/globi/correctedLifeStageNamesGlobi.csv","InputTerm","BestMatch","URI",row['sourceLifeStageName'],row['sourceLifeStageId'],source_taxon_uri,emi.hasDevelopmentalStage, emi.DevelopmentalStage, "DEVELOPMENTAL_STAGE", graph, lifeStageSet)
-#                if (dp.is_none_na_or_empty(row['targetLifeStageName']) or dp.is_none_na_or_empty(row['targetLifeStageId'])) and dp.is_none_na_or_empty(target_taxon_uri):
-#                    add_entity_to_graph("../ontology/data/globi/correctedLifeStageNamesGlobi.csv","InputTerm","BestMatch","URI",row['targetLifeStageName'],row['targetLifeStageId'],target_taxon_uri,emi.hasDevelopmentalStage, emi.DevelopmentalStage, "DEVELOPMENTAL_STAGE", graph, lifeStageSet)
+                if (dp.is_none_na_or_empty(row['sourceBodyPartName']) or dp.is_none_na_or_empty(row['sourceBodyPartId'])) and dp.is_none_na_or_empty(source_taxon_uri):
+                    add_entity_to_graph(row['sourceBodyPartName'],row['sourceBodyPartId'],source_taxon_uri,emi.hasAnatomicalEntity,emi.AnatomicalEntity, "ANATOMICAL_ENTITY", graph, bodyPartSet)
+                if (dp.is_none_na_or_empty(row['targetBodyPartName']) or dp.is_none_na_or_empty(row['targetBodyPartId'])) and dp.is_none_na_or_empty(target_taxon_uri):
+                    add_entity_to_graph(row['targetBodyPartName'],row['targetBodyPartId'],target_taxon_uri,emi.hasAnatomicalEntity,emi.AnatomicalEntity, "ANATOMICAL_ENTITY", graph, bodyPartSet)
+	            
+	            # for life stage names
+                if (dp.is_none_na_or_empty(row['sourceLifeStageName']) or dp.is_none_na_or_empty(row['sourceLifeStageId'])) and dp.is_none_na_or_empty(source_taxon_uri):
+                    add_entity_to_graph(row['sourceLifeStageName'],row['sourceLifeStageId'],source_taxon_uri,emi.hasDevelopmentalStage, emi.DevelopmentalStage, "DEVELOPMENTAL_STAGE", graph, lifeStageSet)
+                if (dp.is_none_na_or_empty(row['targetLifeStageName']) or dp.is_none_na_or_empty(row['targetLifeStageId'])) and dp.is_none_na_or_empty(target_taxon_uri):
+                    add_entity_to_graph(row['targetLifeStageName'],row['targetLifeStageId'],target_taxon_uri,emi.hasDevelopmentalStage, emi.DevelopmentalStage, "DEVELOPMENTAL_STAGE", graph, lifeStageSet)
 	
 	            #for biological sex
                 if dp.is_none_na_or_empty(row['sourceSexName']) and dp.is_none_na_or_empty(source_taxon_uri):
@@ -358,16 +344,16 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, wd_map_file, output_file, jo
     print(f"RDF triples saved to {output_file}")
 
 # Main execution
-if __name__ == "__main__":
-    configFile = "config.txt"
-    if os.path.exists(configFile):       #if config file is available
+#if __name__ == "__main__":
+configFile = "config.txt"
+if os.path.exists(configFile):       #if config file is available
         config = configparser.ConfigParser()
         config.read(configFile)
         csv_file1 = config.get('input tsv files', 'globi_tsv')
         csv_file2 = config.get('accessory files', 'wd_map_file')
         csv_file3 = config.get('accessory files', 'enpkg_wd')
         output_file = config.get('output files', 'globi_ttl')
-    else:                               #else use command line arguments
+else:                               #else use command line arguments
         # Create the argument parser
         parser = argparse.ArgumentParser()
 
@@ -384,4 +370,5 @@ if __name__ == "__main__":
         csv_file3 = args.joinFile
         output_file = args.outputFile
 
-    generate_rdf_in_batches(csv_file1, csv_file3, csv_file2, output_file, join_column="wd_taxon_id", batch_size=100000)
+
+generate_rdf_in_batches(csv_file1, csv_file3, csv_file2, output_file, join_column="wd_taxon_id", batch_size=100000)
