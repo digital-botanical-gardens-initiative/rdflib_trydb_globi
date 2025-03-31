@@ -20,7 +20,7 @@ import os
 sys.path.append('./functions')  # Add the 'src' directory to the sys.path
 import data_processing as dp
 import matchNames_BiologicalSex_LifeStage_BodyPart as mbg
-from config import eURIDict, eURISet, eNamesDict, eNamesSet
+from config import eURIDict, eURISet, eNamesDict, eNamesSet, fungiTerms
 
 rdflib.plugin.register('turtle_custom', rdflib.plugin.Serializer, 'turtle_custom.serializer', 'TurtleSerializerCustom')
 
@@ -90,13 +90,20 @@ def add_entity_to_graph(entity, entityID, subject, predicate, rdftype, ns, graph
         elif entityID.startswith("http"): # check if the entity starts with http
             ent = URIRef(entityID)
             mbg.add_entity(graph, subject, predicate, rdftype, ent, entity, desigSet, "EXISTING-2", entity)
+    elif any(sub in entity for sub in fungiTerms.keys()):
+        for small_term in fungiTerms.keys():
+            if small_term in entity:
+                modEntityName = fungiTerms[small_term]
+                ent = emiBox[f"{ns}-{dp.format_uri(modEntityName)}"]
+                mbg.add_entity(graph, subject, predicate, rdftype, ent, modEntityName, desigSet, "FUNGI-TERMS", entity)
+                break
     elif entity in eURISet: # check if the id is assigned in the dictionary file
         modEntityURI = URIRef(eURIDict[entity])
         modEntityName = eNamesDict[entity]
         mbg.add_entity(graph, subject, predicate, rdftype, modEntityURI, modEntityName, desigSet, "URI-FETCHED-1", entity)
     elif entity in eNamesSet: # check if the name is assigned in the dictionary file
         modEntityName = eNamesDict[entity]
-        ent = emiBox[f"{ns}-{dp.format_uri(entity)}"]
+        ent = emiBox[f"{ns}-{dp.format_uri(modEntityName)}"]
         mbg.add_entity(graph, subject, predicate, rdftype, ent, modEntityName, desigSet, "URI-FETCHED-1a", entity)
     else: # none available
         mbg.listTerms(entity, graph, subject, predicate, rdftype, ns, desigSet)
@@ -214,26 +221,25 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, wd_map_file, output_file, jo
                 else:
                     continue #continue to next iteration if neither of these situations are true
 	            
-                #if isinstance(row["sourceTaxonIdMapped"], (list, np.ndarray)):
+                #the following statements are to skip the current iteration, in case the source/targetTaxonIdMapped are empty.
                 if not pd.notna(row["sourceTaxonIdMapped"]):
                     continue
                 if not pd.notna(row["targetTaxonIdMapped"]):
                     continue
                 
-                #print(row["sourceTaxonIdMapped"])
+
                 #print(type(row["sourceTaxonIdMapped"]))
                 #print(row["targetTaxonIdMapped"])
                 #print(type(row["targetTaxonIdMapped"]))
 
-                if not isinstance(row["sourceTaxonIdMapped"], str):
-                    print(row["sourceTaxonIdMapped"])
-                    print("LIST!!!!!")
-                    row["sourceTaxonIdMapped"] = row["sourceTaxonIdMapped"][[0]]
-                #if isinstance(row["targetTaxonIdMapped"], (list, np.ndarray)):
-                if not isinstance(row["targetTaxonIdMapped"], str):
-                    print(row["targetTaxonIdMapped"])
-                    print("LIST!!!!!")
-                    row["targetTaxonIdMapped"] = row["targetTaxonIdMapped"][[0]]
+                #if not isinstance(row["sourceTaxonIdMapped"], str):
+                #    print(row["sourceTaxonIdMapped"])
+                #    print("LIST!!!!!")
+                #    row["sourceTaxonIdMapped"] = row["sourceTaxonIdMapped"][[0]]
+                #if not isinstance(row["targetTaxonIdMapped"], str):
+                #    print(row["targetTaxonIdMapped"])
+                #    print("LIST!!!!!")
+                #    row["targetTaxonIdMapped"] = row["targetTaxonIdMapped"][[0]]
                 
                 # define URIs (ensure spaces are replaced with underscores by is_none_na... function)
                 source_taxon_uri = emiBox[f"SAMPLE-{dp.format_uri(row['sourceTaxonIdMapped'])}-inRec{i}"] if dp.is_none_na_or_empty(row['sourceTaxonIdMapped']) else None
@@ -297,14 +303,18 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, wd_map_file, output_file, jo
 	            # first read the file in which the mappings are stored, followed by triples generation
 	            # for body part names
                 if (dp.is_none_na_or_empty(row['sourceBodyPartName']) or dp.is_none_na_or_empty(row['sourceBodyPartId'])) and dp.is_none_na_or_empty(source_taxon_uri):
+                    print("NAMES",row["sourceTaxonId"], row["sourceTaxonName"], row["targetTaxonId"], row["targetTaxonName"], sep="\t")
                     add_entity_to_graph(row['sourceBodyPartName'],row['sourceBodyPartId'],source_taxon_uri,emi.hasAnatomicalEntity,emi.AnatomicalEntity, "ANATOMICAL_ENTITY", graph, bodyPartSet)
                 if (dp.is_none_na_or_empty(row['targetBodyPartName']) or dp.is_none_na_or_empty(row['targetBodyPartId'])) and dp.is_none_na_or_empty(target_taxon_uri):
+                    print("NAMES",row["sourceTaxonId"], row["sourceTaxonName"], row["targetTaxonId"], row["targetTaxonName"], sep="\t")
                     add_entity_to_graph(row['targetBodyPartName'],row['targetBodyPartId'],target_taxon_uri,emi.hasAnatomicalEntity,emi.AnatomicalEntity, "ANATOMICAL_ENTITY", graph, bodyPartSet)
 	            
 	            # for life stage names
                 if (dp.is_none_na_or_empty(row['sourceLifeStageName']) or dp.is_none_na_or_empty(row['sourceLifeStageId'])) and dp.is_none_na_or_empty(source_taxon_uri):
+                    print("NAMES",row["sourceTaxonId"], row["sourceTaxonName"], row["targetTaxonId"], row["targetTaxonName"], sep="\t")
                     add_entity_to_graph(row['sourceLifeStageName'],row['sourceLifeStageId'],source_taxon_uri,emi.hasDevelopmentalStage, emi.DevelopmentalStage, "DEVELOPMENTAL_STAGE", graph, lifeStageSet)
                 if (dp.is_none_na_or_empty(row['targetLifeStageName']) or dp.is_none_na_or_empty(row['targetLifeStageId'])) and dp.is_none_na_or_empty(target_taxon_uri):
+                    print("NAMES",row["sourceTaxonId"], row["sourceTaxonName"], row["targetTaxonId"], row["targetTaxonName"], sep="\t")
                     add_entity_to_graph(row['targetLifeStageName'],row['targetLifeStageId'],target_taxon_uri,emi.hasDevelopmentalStage, emi.DevelopmentalStage, "DEVELOPMENTAL_STAGE", graph, lifeStageSet)
 	
 	            #for biological sex
