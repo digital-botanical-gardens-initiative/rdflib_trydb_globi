@@ -12,7 +12,7 @@ import data_processing as dp
 #from makeTriples_globi_rdf_v1 import eURIDict, eURISet, eNamesDict, eNamesSet  # Import global variables
 
 def add_entity(graph, subject, predicate, rdftype, entity, entity_name, desigSet, fetchtype, termOr):
-    print(termOr, entity, fetchtype, sep="\t")
+    print(subject, termOr, entity, fetchtype, sep="\t")
     graph.add((subject, predicate, entity))
     if entity not in desigSet:
         graph.add((entity, RDF.type, rdftype))
