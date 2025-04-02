@@ -212,7 +212,7 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, wd_map_file, output_file, jo
                     continue #continue to next iteration if neither of these situations are true
                 
                 #mapping initial IDs (absolutely necessary) for target
-                if row["sourceTaxonId"] in wd_map_set_id:
+                if row["targetTaxonId"] in wd_map_set_id:
                     row["targetTaxonIdMapped"] = wd_map_dict_id.get(row["targetTaxonId"], (None,None))[0]
                     row["targetTaxonNameMapped"] = row["targetTaxonName"] if pd.notna(row["targetTaxonName"]) else wd_map_dict_id.get(row["targetTaxonId"], (None, None))[1]
                 elif row["targetTaxonName"] in wd_map_set_name:
@@ -342,7 +342,7 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, wd_map_file, output_file, jo
                             graph.add((ent, RDF.type, emi.BiologicalSex))  
                             biologicalSexSet.add(ent)
 	            
-                i = i + 1
+                i = i + 1 #check if i is increasing as expected. appears to do so
         dp.add_inverse_relationships(graph)
 	        
 	    # Serialize the graph for the batch and write to the file
