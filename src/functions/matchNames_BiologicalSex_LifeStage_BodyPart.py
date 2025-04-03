@@ -11,13 +11,13 @@ import data_processing as dp
 
 #from makeTriples_globi_rdf_v1 import eURIDict, eURISet, eNamesDict, eNamesSet  # Import global variables
 
-def add_entity(graph, subject, predicate, rdftype, entity, entity_name, desigSet, fetchtype, termOr):
-    print(subject, termOr, entity, fetchtype, sep="\t")
-    graph.add((subject, predicate, entity))
-    if entity not in desigSet:
-        graph.add((entity, RDF.type, rdftype))
-        graph.add((entity, RDFS.label, Literal(entity_name, datatype=XSD.string)))
-        desigSet.add(entity)
+def add_entity(graph, subject, predicate, rdftype, entityX, entity_name, desigSet, fetchtype, termOr):
+    print(subject, termOr, entityX, fetchtype, sep="\t")
+    graph.add((subject, predicate, entityX))
+    if entityX not in desigSet:
+        graph.add((entityX, RDF.type, rdftype))
+        graph.add((entityX, RDFS.label, Literal(entity_name, datatype=XSD.string)))
+        desigSet.add(entityX)
 
 def lookup_term(termOr, graph, subject, predicate, rdftype, ns, term, pre_post_fix, desigSet):
     emiBox = Namespace("https://purl.org/emi/abox#")
@@ -43,7 +43,7 @@ def lookup_term(termOr, graph, subject, predicate, rdftype, ns, term, pre_post_f
             modEntityName = eNamesDict[term]
             ent = emiBox[f"{ns}-{dp.format_uri(modEntityName)}"]
 #            print(term, ns, modEntityName, "URI-FETCHED-1a", sep="\t")
-            add_entity(graph, subject, predicate, ent, modEntityName, rdftype, desigSet, "URI-FETCHED-1a", termOr)
+            add_entity(graph, subject, predicate, rdftype, ent, modEntityName, desigSet, "URI-FETCHED-1a", termOr)
         else:
             print(termOr, ns, term, "NOTHING-AVAILABLE", sep="\t")
 
