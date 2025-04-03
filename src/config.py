@@ -28,8 +28,10 @@ fungiTerms = {
     "dematiaceous anamorph": "dematiaceous anamorph",
     "coelomycetous anamorph": "coelomycetous anamorph",
     "anamorph": "anamorph",
+    "anamoprh": "anamorph",
     "synnemata": "synnemata",
-    "synnema": "synnemata"
+    "synnema": "synnemata",
+    "teleomorph": "teleomorph"
 }
 
 
