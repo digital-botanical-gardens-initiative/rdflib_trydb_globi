@@ -245,7 +245,10 @@ def generate_rdf_in_batches(input_csv_gz, join_csv, wd_map_file, output_file, jo
                         continue
                     if not pd.notna(row["targetTaxonIdMapped"]):
                         continue
-                
+                    if(row["sourceTaxonIdMapped"] == row["targetTaxonIdMapped"]):
+                        print("\t".join(row.astype(str)))  # Convert all values to strings and join
+                        print(row, "SAME-SOURCE-TARGET", sep="\t")
+                        continue
 
                     #print(type(row["sourceTaxonIdMapped"]))
                     #print(row["targetTaxonIdMapped"])
