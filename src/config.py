@@ -34,5 +34,40 @@ fungiTerms = {
     "teleomorph": "teleomorph"
 }
 
-
-
+traitNames = set(
+"Leaf area (in case of compound leaves: leaflet, petiole excluded)",
+"Leaf area (in case of compound leaves: leaflet, petiole included)",
+"Leaf area (in case of compound leaves: leaflet, undefined if petiole is in- or excluded)",
+"Leaf area (in case of compound leaves: leaf, petiole excluded)",
+"Leaf area (in case of compound leaves: leaf, petiole included)",
+"Leaf area (in case of compound leaves: leaf, undefined if petiole in- or excluded)",
+"Leaf area (in case of compound leaves undefined if leaf or leaflet, undefined if petiole is in- or excluded)",
+"Leaf area per leaf dry mass (specific leaf area, SLA or 1/LMA): petiole excluded",
+"Leaf area per leaf dry mass (specific leaf area, SLA or 1/LMA): petiole included",
+"Leaf area per leaf dry mass (specific leaf area, SLA or 1/LMA) petiole, rhachis and midrib excluded",
+"Leaf area per leaf dry mass (specific leaf area, SLA or 1/LMA): undefined if petiole is in- or excluded",
+"Leaf carbon (C) content per leaf dry mass",
+"Leaf lifespan (longevity)",
+"Leaf nitrogen (N) content per leaf dry mass",
+"Leaf phosphorus (P) content per leaf dry mass",
+"Leaf respiration rate in light per dry mass",
+"Leaf respiration rate in light per leaf area",
+"Leaf respiration rate in light per leaf respiration rate in the dark",
+"Leaf respiration rate in the dark as fraction of photosynthetic carboxylation capacity (Vcmax)",
+"Leaf respiration rate in the dark minus respiration in light, mass based",
+"Leaf respiration rate in the dark per leaf area",
+"Leaf respiration rate in the dark per leaf dry mass",
+"Leaf respiration rate in the dark per leaf nitrogen (N) content",
+"Leaf respiration rate in the dark temperature dependence",
+"Photosynthesis rate per leaf area",
+"Photosynthesis rate per leaf area: transition to TPU limited photosynthesis",
+"Photosynthesis rate per leaf dry mass",
+"Photosynthesis rate per leaf nitrogen (N) content (photosynthetic nitrogen use efficiency, PNUE)",
+"Photosynthesis rate per leaf transpiration (photosynthetic water use effinciency: WUE)",
+"Photosynthesis rate per stomatal conductance",
+"Plant height generative",
+"Plant height vegetative",
+"Seed dry mass",
+"Seed mass per fruit",
+"Stem specific density (SSD, stem dry mass per stem fresh volume) or wood density",
+"Stem specific density (SSD, stem dry mass per stem fresh volume) or wood density: heartwood")
