@@ -48,7 +48,7 @@ def generate_rdf_in_batches(input_csv_gz, wdMapping_csv, join_csv, output_file, 
     :param batch_size: The number of rows to process per batch.
     """
     # Load input data
-    data1 = pd.read_csv(input_csv_gz, compression="gzip", sep="\t", dtype=str)
+    data1 = pd.read_csv(input_csv_gz, compression="gzip", sep="\t", dtype=str, encoding="iso-8859-1")
     data2 = pd.read_csv(wdMapping_csv, compression="gzip", sep="\t", dtype=str)
     
     # read units dict file
@@ -198,7 +198,7 @@ if __name__ == "__main__":
     if os.path.exists(configFile):       #if config file is available
         config = configparser.ConfigParser()
         config.read(configFile)
-        csv_file1 = config.get('tsv files', 'trydb_tsv')
+        csv_file1 = config.get('input tsv files', 'trydb_tsv')
         csv_file2 = config.get('accessory files', 'trydb_wd')
         csv_file3 = config.get('accessory files', 'enpkg_wd')
         output_file = config.get('output files', 'trydb_ttl')
