@@ -34,8 +34,7 @@ fungiTerms = {
     "teleomorph": "teleomorph"
 }
 
-traitNames = set(
-"Leaf area (in case of compound leaves: leaflet, petiole excluded)",
+traitNamesX = ["Leaf area (in case of compound leaves: leaflet, petiole excluded)",
 "Leaf area (in case of compound leaves: leaflet, petiole included)",
 "Leaf area (in case of compound leaves: leaflet, undefined if petiole is in- or excluded)",
 "Leaf area (in case of compound leaves: leaf, petiole excluded)",
@@ -70,4 +69,6 @@ traitNames = set(
 "Seed dry mass",
 "Seed mass per fruit",
 "Stem specific density (SSD, stem dry mass per stem fresh volume) or wood density",
-"Stem specific density (SSD, stem dry mass per stem fresh volume) or wood density: heartwood")
+"Stem specific density (SSD, stem dry mass per stem fresh volume) or wood density: heartwood"]
+
+traitNames = set(traitNamesX)
