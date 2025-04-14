@@ -24,7 +24,9 @@ SELECT DISTINCT ?sourceWD ?sourceName ?intxnName ?targetWD ?targetName ?loc WHER
 	?intxn emi:hasSource ?xOrg ;				 #retrieve interaction-pairs
                emi:hasTarget ?yOrg ;
 	       emi:isClassifiedWith ?intxnName ;
-	       prov:atLocation ?loc .				 #retrieve location of interactions
+	       prov:atLocation ?loc ;				 #retrieve location of interactions
+	       wgs:lat ?lats ;					
+	       wgs:long ?longs .
 	?xOrg emi:inTaxon ?sourceWD ;				 #retrieve interaction-source and its scientific name as listed in GloBI
 	      rdfs:label ?sourceName ;
 	      sosa:isSampleOf ?sourceSample .

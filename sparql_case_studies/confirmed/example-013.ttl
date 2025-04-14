@@ -37,7 +37,7 @@ ex:013 a sh:SPARQLExecutable,
 		                      emi:hasClass ?npcClass .
 				?npcClass skos:broader ?npcSuperClass .
 		        	?ik emi:isInChIKeyOf ?wd_chem .					#retrieve wikidata-ids for metabolites
-				FILTER (REGEX(STR(?npcSuperClass), "DITERPENOIDS"))
+				FILTER (REGEX(STR(?npcSuperClass), 'DITERPENOIDS'))
 		        }} UNION								#union with data from lotus (integrated in wikidata)
 			{ SERVICE <https://qlever.cs.uni-freiburg.de/api/wikidata> {
 			 	?wd_chem wdt:P235 ?structure_inchikey ;
@@ -49,10 +49,10 @@ ex:013 a sh:SPARQLExecutable,
 		        ?trySpObs sosa:isSampleOf ?trySpName ;					#retrieve trait/non-trait data for trySpName (scientific name of plant species as listed in trydb)
 				 rdfs:label ?sourceName ;
 		                 sosa:isFeatureOfInterestOf ?tryObId .
-		        ?trySpName emi:inTaxon ?source_wdx .						#retrieve wikidata-ids wdx for trySpName
+		        ?trySpName emi:inTaxon ?source_wdx .						#retrieve wikidata-ids wdx for trySpName matching the one from metabolite queries 
 		        ?tryObId sosa:hasResult ?tryData .
 		        ?tryData rdfs:label ?tryDataLab ;
-		        	rdf:type emi:Trait ;						#retrieve data which is labelled as "Trait"
+		        	rdf:type emi:Trait ;						#retrieve data which is labelled as 'Trait'
 				rdf:value ?tryDataVal ;						#retrieve values for Trait data
 				qudt:hasUnit ?unit ;						#retrieve units for trait data
 				rdfs:comment ?unitComment .					#retrieve original units for Trait data as listed in trydb

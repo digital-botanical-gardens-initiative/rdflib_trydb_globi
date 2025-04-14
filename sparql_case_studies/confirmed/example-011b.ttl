@@ -25,7 +25,7 @@ ex:011b a sh:SPARQLExecutable,
 			?source_trySpName emi:inTaxon ?source_wd .						#retrieve wikidata-id for trySpName		
 			?tryObId sosa:hasResult ?tryData .
 			?tryData rdfs:label ?tryDataLab ;			
-				 rdf:type emi:Trait ;							#filter data which is labelled as "Trait"
+				 rdf:type emi:Trait ;							#filter data which is labelled as 'Trait'
 				 rdf:value ?tryDataVal ;						#retrieve values for Trait data
 				 qudt:hasUnit ?unit .							#retrieve units for Trait data
 			OPTIONAL {?tryData rdfs:comment ?unitComment .}					#retrieve comments (containing original unprocessed unit information - necessary for understanding some data) for Trait data

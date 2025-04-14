@@ -26,10 +26,10 @@ ex:012 a sh:SPARQLExecutable,
 			?tryObId sosa:hasResult ?tryData .
 			?trySpName emi:inTaxon ?source_wdx .						#retrieve wikidata-ids wdx for trySpName
 			?tryData rdfs:label ?tryDataLab ;					
-				 rdf:type emi:Trait ;						#retrieve data which is labelled as "Trait"
+				 rdf:type emi:Trait ;						#retrieve data which is labelled as 'Trait'
 				 rdf:value ?tryDataVal .					#retrieve values for Trait data
-			FILTER (?tryDataLab = "Seed dry mass" )					#filter on data label 'Seed dry mass'
-			FILTER (?tryDataVal >= 626)						#filter on data value >= 626
+			FILTER (STR(?tryDataLab) = 'Seed dry mass' )					#filter on data label 'Seed dry mass'
+			FILTER (?tryDataVal >= 100)						#filter on data value >= 100
 		 	SERVICE <https://qlever.cs.uni-freiburg.de/api/wikidata> {
                    		?source_wdx wdt:P141 wd:Q719675 .					#filter wikidata-ids for trySpName, which have IUCN status (wdt:P141) as near threatened (wd:Q719675)
                     	}
@@ -53,7 +53,7 @@ ex:012 a sh:SPARQLExecutable,
 			 	?wd_chem wdt:P235 ?structure_inchikey;				
    			 		 wdt:P703 ?source_wdx .	
 			}}
-  		} LIMIT 1000
+  		}
 		""" ;
     schema:target <https://biosoda.unil.ch/emi/sparql/> ;
     spex:federatesWith <https://qlever.cs.uni-freiburg.de/api/wikidata> .

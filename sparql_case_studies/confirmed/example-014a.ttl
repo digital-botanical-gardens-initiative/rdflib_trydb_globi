@@ -2,6 +2,7 @@
 @prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
 @prefix schema: <https://schema.org/> .
 @prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix spex:<https://purl.expasy.org/sparql-examples/ontology#> .
 
 ex:014a a sh:SPARQLExecutable,
         sh:SPARQLSelectExecutable ;
@@ -48,9 +49,10 @@ ex:014a a sh:SPARQLExecutable,
 			       emi:hasTarget ?target .
 			?source emi:inTaxon ?source_wdx .				#retrieve wikidata-id of source
 			?target emi:inTaxon ?target_wdx .				#retrieve wikidata-id of target
-			?intxn prov:atLocation ?loc ;				#optionally retrieve the location of the interaction, and the latitude/longitude
+			?intxn prov:atLocation ?loc ;					#retrieve the location of the interaction, and the latitude/longitude
 			       wgs:lat ?lats ;					
 			       wgs:long ?longs .
 		}
 """ ;
     schema:target <https://purl.org/emi> .
+    spex:federatesWith <https://qlever.cs.uni-freiburg.de/api/wikidata> .
